@@ -36,3 +36,9 @@ footer {
     color: white;
     padding: 10px;
 }
+
+img {
+    border-radius: 10px; /* Rounded corners */
+    display: block;
+    margin: auto; /* Center the image */
+}
