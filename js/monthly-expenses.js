@@ -33,12 +33,14 @@ function saveExpenses() {
         const name = row.cells[0].textContent.trim();
         const amount = row.cells[1].querySelector('input').value.trim();
         const paid = row.cells[2].querySelector('select').value;
+        const dueDate = row.cells[3].querySelector('input').value.trim(); // 🆕
 
-        expenses.push({ name, amount, paid });
+        expenses.push({ name, amount, paid, dueDate }); // 🆕
     });
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
 }
+
 
 function loadExpenses() {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -51,9 +53,11 @@ function loadExpenses() {
         if (expenses[index]) {
             row.cells[1].querySelector('input').value = expenses[index].amount;
             row.cells[2].querySelector('select').value = expenses[index].paid;
+            row.cells[3].querySelector('input').value = expenses[index].dueDate || ''; // 🆕
         }
     });
 }
+
 
 function calculateTotals() {
     const rows = document.querySelectorAll('#expenses-table tbody tr');
@@ -111,14 +115,15 @@ function setAllPaid(value) {
 
 function exportCSV() {
     const rows = document.querySelectorAll('#expenses-table tbody tr');
-    let csvContent = "Expense Type,Amount,Paid\n";
+    let csvContent = "Expense Type,Amount,Paid,Due Date\n"; // 🆕
 
     rows.forEach(row => {
         const type = row.cells[0].textContent.trim();
         const amount = row.cells[1].querySelector('input').value.trim() || '0';
         const paid = row.cells[2].querySelector('select').value;
+        const dueDate = row.cells[3].querySelector('input').value.trim(); // 🆕
 
-        csvContent += `"${type}","${amount}","${paid}"\n`;
+        csvContent += `"${type}","${amount}","${paid}","${dueDate}"\n`; // 🆕
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -129,5 +134,7 @@ function exportCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
 }
 
