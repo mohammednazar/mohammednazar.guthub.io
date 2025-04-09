@@ -75,12 +75,16 @@ function calculateTotals() {
       unpaidAmount += amount;
 
       if (dueDateValue) {
-        const dueDate = new Date(dueDateValue);
-        if (dueDate <= inTwoDays && dueDate >= today) {
-          row.style.backgroundColor = '#f8d7da'; // 🔴 light red
-        } else {
-          row.style.backgroundColor = ''; // clear if not overdue
-        }
+      const dueDate = new Date(dueDateValue);
+      const isPastDue = dueDate < today.setHours(0, 0, 0, 0); // handles time
+      const isDueSoon = dueDate <= inTwoDays;
+
+      if (isPastDue || isDueSoon) {
+        row.style.backgroundColor = '#f8d7da'; // 🔴 light red for both
+      } else {
+        row.style.backgroundColor = ''; // clear if not urgent
+      }
+
       } else {
         row.style.backgroundColor = ''; // no due date, no highlight
       }
