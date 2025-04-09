@@ -16,7 +16,10 @@
 <div style="margin: 20px 0;">
     <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
     <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
+    <button class="button" onclick="exportCSV()">Export as CSV</button> <!-- 🆕 -->
+    <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
 </div>
+
 
 <table id="expenses-table">
     <thead>
@@ -53,9 +56,6 @@
         </tr>
     </tfoot>
 </table>
-
-
-    <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
 </main>
 
 <footer>
