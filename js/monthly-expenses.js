@@ -93,3 +93,18 @@ function clearExpenses() {
     calculateTotals();
     alert("Cleared all expenses. Ready for next month!");
 }
+
+function setAllPaid(value) {
+    const rows = document.querySelectorAll('#expenses-table tbody tr');
+
+    rows.forEach(row => {
+        const paidSelect = row.cells[2].querySelector('select');
+        paidSelect.value = value;
+
+        // Update row color
+        row.style.backgroundColor = value === 'yes' ? '#d4edda' : '';
+    });
+
+    saveExpenses();
+    calculateTotals();
+}
