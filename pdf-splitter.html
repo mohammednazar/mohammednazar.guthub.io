@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Splitter</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="js/pdf-splitter.js" defer></script>
+</head>
+<body>
+<header>
+    <h1>PDF Splitter</h1>
+    <nav><a href="index.html">Home</a></nav>
+</header>
+<main>
+    <input type="file" id="pdf-input" accept=".pdf">
+    <button class="button" onclick="splitPdf()">Split PDF & Download</button>
+    <p id="split-status"></p>
+</main>
+<footer>
+    <p>© 2025 PDF Splitter</p>
+</footer>
+</body>
+</html>
