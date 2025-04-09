@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Resource Tracker</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="js/resource-tracker.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Resource Tracker</h1>
+    <nav><a href="index.html">Home</a></nav>
+  </header>
+
+  <main>
+    <h2>Add Employee</h2>
+    <form id="employee-form">
+      <input type="text" placeholder="Talent ID" id="talentId" required />
+      <input type="text" placeholder="First Name" id="firstName" required />
+      <input type="text" placeholder="Last Name" id="lastName" required />
+      <input type="email" placeholder="Email ID" id="email" required />
+      <input type="email" placeholder="Client Email ID" id="clientEmail" required />
+      <input type="date" id="lwd" placeholder="Last Working Day (Optional)" />
+      <button type="submit">Add Employee</button>
+    </form>
+
+    <div style="margin-top: 20px;">
+      <h2>Active Employees</h2>
+      <button onclick="exportActiveCSV()">Export Active as CSV</button>
+      <table id="active-table" border="1">
+        <thead>
+          <tr>
+            <th>Talent ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Client Email</th>
+            <th>LWD</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 40px;">
+      <h2>Inactive Employees</h2>
+      <table id="inactive-table" border="1">
+        <thead>
+          <tr>
+            <th>Talent ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Client Email</th>
+            <th>LWD</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>
