@@ -3,17 +3,25 @@ const STORAGE_KEY = 'monthlyExpenses';
 document.addEventListener('DOMContentLoaded', () => {
     loadExpenses();
     setupListeners();
+    calculateTotals();
 });
 
 function setupListeners() {
     const rows = document.querySelectorAll('#expenses-table tbody tr');
 
-    rows.forEach((row, index) => {
+    rows.forEach((row) => {
         const amountInput = row.cells[1].querySelector('input');
         const paidSelect = row.cells[2].querySelector('select');
 
-        amountInput.addEventListener('input', () => saveExpenses());
-        paidSelect.addEventListener('change', () => saveExpenses());
+        amountInput.addEventListener('input', () => {
+            saveExpenses();
+            calculateTotals();
+        });
+
+        paidSelect.addEventListener('change', () => {
+            saveExpenses();
+            calculateTotals();
+        });
     });
 }
 
@@ -47,6 +55,31 @@ function loadExpenses() {
     });
 }
 
+function calculateTotals() {
+    const rows = document.querySelectorAll('#expenses-table tbody tr');
+
+    let totalAmount = 0;
+    let unpaidAmount = 0;
+
+    rows.forEach(row => {
+        const amount = parseFloat(row.cells[1].querySelector('input').value) || 0;
+        const paid = row.cells[2].querySelector('select').value;
+
+        totalAmount += amount;
+        if (paid === 'no') unpaidAmount += amount;
+
+        // Highlight paid rows
+        if (paid === 'yes') {
+            row.style.backgroundColor = '#d4edda'; // light green
+        } else {
+            row.style.backgroundColor = ''; // reset
+        }
+    });
+
+    document.getElementById('total-amount').textContent = `$${totalAmount.toFixed(2)}`;
+    document.getElementById('total-unpaid').textContent = `Unpaid: $${unpaidAmount.toFixed(2)}`;
+}
+
 function clearExpenses() {
     localStorage.removeItem(STORAGE_KEY);
 
@@ -54,7 +87,9 @@ function clearExpenses() {
     rows.forEach(row => {
         row.cells[1].querySelector('input').value = '';
         row.cells[2].querySelector('select').value = 'no';
+        row.style.backgroundColor = '';
     });
 
+    calculateTotals();
     alert("Cleared all expenses. Ready for next month!");
 }
