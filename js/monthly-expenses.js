@@ -19,6 +19,7 @@ function setupListeners() {
     });
     row.cells[3].querySelector('input').addEventListener('change', () => {
       saveExpenses();
+      calculateTotals();
     });
   });
 }
