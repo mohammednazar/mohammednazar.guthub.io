@@ -86,3 +86,10 @@ tfoot td {
     background-color: #f1f1f1;
 }
 
+input[type="date"] {
+    width: 100%;
+    padding: 4px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+}
+
