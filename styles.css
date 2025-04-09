@@ -63,22 +63,26 @@ textarea, input[type="text"] {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    font-size: 0.9rem; /* smaller font */
 }
 
 th, td {
     border: 1px solid #ccc;
-    padding: 12px;
+    padding: 6px 8px; /* tighter padding */
     text-align: left;
 }
 
 input[type="number"], select {
-    width: 100%;
-    padding: 6px;
-    box-sizing: border-box;
+    padding: 4px;
+    font-size: 0.85rem;
+}
+
+textarea, input[type="text"] {
+    font-size: 0.9rem;
 }
 
 tfoot td {
     font-weight: bold;
     background-color: #f1f1f1;
 }
+
