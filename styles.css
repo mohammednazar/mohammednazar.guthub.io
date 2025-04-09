@@ -77,3 +77,8 @@ input[type="number"], select {
     padding: 6px;
     box-sizing: border-box;
 }
+
+tfoot td {
+    font-weight: bold;
+    background-color: #f1f1f1;
+}
