@@ -13,22 +13,31 @@
 </header>
 
 <main>
-    <table id="expenses-table">
-        <thead>
-            <tr>
-                <th>Expense Type</th>
-                <th>Amount ($)</th>
-                <th>Paid?</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td>Electricity</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
-            <tr><td>Heat</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
-            <tr><td>Water</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
-            <tr><td>Internet</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
-            <tr><td>Phone</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
-        </tbody>
-    </table>
+<table id="expenses-table">
+    <thead>
+        <tr>
+            <th>Expense Type</th>
+            <th>Amount ($)</th>
+            <th>Paid?</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- existing rows -->
+        <tr><td>Electricity</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
+        <tr><td>Heat</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
+        <tr><td>Water</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
+        <tr><td>Internet</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
+        <tr><td>Phone</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td></tr>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td><strong>Total</strong></td>
+            <td id="total-amount">$0</td>
+            <td id="total-unpaid">Unpaid: $0</td>
+        </tr>
+    </tfoot>
+</table>
+
 
     <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
 </main>
