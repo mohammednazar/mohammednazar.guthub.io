@@ -74,10 +74,10 @@ function calculateTotals() {
 
         if (paid === 'yes') {
             paidAmount += amount;
-            row.style.backgroundColor = '#d4edda'; // light green
+            row.style.backgroundColor = '#d4edda'; // ✅ green for paid
         } else {
             unpaidAmount += amount;
-            row.style.backgroundColor = ''; // reset
+            row.style.backgroundColor = ''; // reset for unpaid
         }
     });
 
@@ -85,6 +85,7 @@ function calculateTotals() {
     document.getElementById('total-paid').textContent = `$${paidAmount.toFixed(2)} Paid`;
     document.getElementById('total-unpaid').textContent = `$${unpaidAmount.toFixed(2)} Unpaid`;
 }
+
 
 
 function clearExpenses() {
