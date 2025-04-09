@@ -27,7 +27,7 @@ function splitString() {
 
     parts.forEach((part, i) => {
         const li = document.createElement('li');
-        li.textContent = `Part ${i + 1}: ${part}`;
+        li.textContent = `${part}`;
         outputList.appendChild(li);
     });
 }
