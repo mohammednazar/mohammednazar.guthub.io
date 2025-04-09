@@ -93,3 +93,13 @@ input[type="date"] {
     box-sizing: border-box;
 }
 
+.home-link {
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.home-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
