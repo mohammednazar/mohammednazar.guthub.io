@@ -20,7 +20,10 @@ function renderTables() {
       <td>${emp.email}</td>
       <td>${emp.clientEmail}</td>
       <td>${emp.lwd || ''}</td>
-      <td><button onclick="moveToInactive(${index})">Set LWD</button></td>
+      <td>
+        <button onclick="moveToInactive(${index})">Set LWD</button>
+        <button onclick="deleteActive(${index})" style="margin-left: 5px;">Delete</button>
+      </td>
     `;
     activeTable.appendChild(row);
   });
@@ -33,11 +36,15 @@ function renderTables() {
       <td>${emp.email}</td>
       <td>${emp.clientEmail}</td>
       <td>${emp.lwd}</td>
-      <td><button onclick="moveToActive(${index})">Reactivate</button></td>
+      <td>
+        <button onclick="moveToActive(${index})">Reactivate</button>
+        <button onclick="deleteInactive(${index})" style="margin-left: 5px;">Delete</button>
+      </td>
     `;
     inactiveTable.appendChild(row);
   });
 }
+
 
 function moveToInactive(index) {
   const emp = activeEmployees[index];
@@ -98,4 +105,19 @@ function exportActiveCSV() {
   document.body.removeChild(link);
 }
 
+function deleteActive(index) {
+  if (confirm("Are you sure you want to delete this active employee?")) {
+    activeEmployees.splice(index, 1);
+    saveData();
+    renderTables();
+  }
+}
+
+function deleteInactive(index) {
+  if (confirm("Are you sure you want to delete this inactive employee?")) {
+    inactiveEmployees.splice(index, 1);
+    saveData();
+    renderTables();
+  }
+}
 window.onload = renderTables;
