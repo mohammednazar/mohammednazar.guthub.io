@@ -51,24 +51,44 @@ function loadExpenses() {
 
 function calculateTotals() {
   const rows = document.querySelectorAll('#expenses-table tbody tr');
-  let total = 0, paid = 0, unpaid = 0;
+
+  let totalAmount = 0;
+  let paidAmount = 0;
+  let unpaidAmount = 0;
+
+  const today = new Date();
+  const inTwoDays = new Date();
+  inTwoDays.setDate(today.getDate() + 2);
 
   rows.forEach(row => {
     const amount = parseFloat(row.cells[1].querySelector('input').value) || 0;
-    const isPaid = row.cells[2].querySelector('select').value === 'yes';
-    total += amount;
-    if (isPaid) {
-      paid += amount;
-      row.style.backgroundColor = '#d4edda';
+    const paid = row.cells[2].querySelector('select').value;
+    const dueDateValue = row.cells[3].querySelector('input').value;
+
+    totalAmount += amount;
+
+    if (paid === 'yes') {
+      paidAmount += amount;
+      row.style.backgroundColor = '#d4edda'; // light green
     } else {
-      unpaid += amount;
-      row.style.backgroundColor = '';
+      unpaidAmount += amount;
+
+      if (dueDateValue) {
+        const dueDate = new Date(dueDateValue);
+        if (dueDate <= inTwoDays && dueDate >= today) {
+          row.style.backgroundColor = '#f8d7da'; // 🔴 light red
+        } else {
+          row.style.backgroundColor = ''; // clear if not overdue
+        }
+      } else {
+        row.style.backgroundColor = ''; // no due date, no highlight
+      }
     }
   });
 
-  document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
-  document.getElementById('total-paid').textContent = `$${paid.toFixed(2)} Paid`;
-  document.getElementById('total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
+  document.getElementById('total-amount').textContent = `$${totalAmount.toFixed(2)}`;
+  document.getElementById('total-paid').textContent = `$${paidAmount.toFixed(2)} Paid`;
+  document.getElementById('total-unpaid').textContent = `$${unpaidAmount.toFixed(2)} Unpaid`;
 }
 
 function setAllPaid(value) {
