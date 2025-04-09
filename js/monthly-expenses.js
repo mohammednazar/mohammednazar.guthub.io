@@ -81,12 +81,6 @@ function calculateTotals() {
 }
 
 function clearExpenses() {
-
-    {
-    if (confirm("Would you like to export your expenses before clearing?")) {
-        exportCSV();
-    }
-
     localStorage.removeItem(STORAGE_KEY);
 
     const rows = document.querySelectorAll('#expenses-table tbody tr');
