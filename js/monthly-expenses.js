@@ -108,3 +108,26 @@ function setAllPaid(value) {
     saveExpenses();
     calculateTotals();
 }
+
+function exportCSV() {
+    const rows = document.querySelectorAll('#expenses-table tbody tr');
+    let csvContent = "Expense Type,Amount,Paid\n";
+
+    rows.forEach(row => {
+        const type = row.cells[0].textContent.trim();
+        const amount = row.cells[1].querySelector('input').value.trim() || '0';
+        const paid = row.cells[2].querySelector('select').value;
+
+        csvContent += `"${type}","${amount}","${paid}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "monthly_expenses.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
