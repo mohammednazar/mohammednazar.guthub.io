@@ -2,23 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PDF Splitter</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="js/pdf-splitter.js" defer></script>
+    <title>PDF Split to ZIP</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        input, button {
+            display: block;
+            width: 100%;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            font-size: 16px;
+        }
+
+        #split-status {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<header>
-    <h1>PDF Splitter</h1>
-    <nav><a href="index.html">Home</a></nav>
-</header>
-<main>
-    <input type="file" id="pdf-input" accept=".pdf">
-    <button class="button" onclick="splitPdf()">Split PDF & Download</button>
+    <h1>Split PDF into Pages & Download as ZIP</h1>
+
+    <input type="file" id="pdf-input" accept="application/pdf">
+    <button onclick="splitPdfToZip()">Split & Download ZIP</button>
     <p id="split-status"></p>
-</main>
-<footer>
-    <p>© 2025 PDF Splitter</p>
-</footer>
+
+    <script>
+        async function splitPdfToZip() {
+            const input = document.getElementById('pdf-input');
+            const status = document.getElementById('split-status');
+
+            if (!input.files.length) {
+                status.textContent = "❌ Please select a PDF file first!";
+                return;
+            }
+
+            const file = input.files[0];
+            status.textContent = "⏳ Splitting PDF and generating ZIP...";
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const totalPages = pdfDoc.getPageCount();
+
+            const zip = new JSZip();
+
+            for (let i = 0; i < totalPages; i++) {
+                const newDoc = await PDFLib.PDFDocument.create();
+                const [page] = await newDoc.copyPages(pdfDoc, [i]);
+                newDoc.addPage(page);
+                const pdfBytes = await newDoc.save();
+                zip.file(`page_${i + 1}.pdf`, pdfBytes);
+            }
+
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const zipLink = document.createElement('a');
+            zipLink.href = URL.createObjectURL(zipBlob);
+            zipLink.download = `split_pages.zip`;
+            zipLink.click();
+
+            status.textContent = `✅ ${totalPages} page(s) split and zipped successfully!`;
+        }
+    </script>
 </body>
 </html>
