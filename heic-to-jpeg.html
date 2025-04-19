@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HEIC to JPEG Converter</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/heic2any" defer></script>
+    <script src="js/heic-to-jpeg.js" defer></script>
+</head>
+<body>
+<header>
+    <h1>HEIC to JPEG Converter</h1>
+    <nav><a href="index.html">Home</a></nav>
+</header>
+<main>
+    <input type="file" id="heic-input" multiple accept=".heic">
+    <button class="button" onclick="convertHeicToJpeg()">Convert to JPEG & Download</button>
+    <p id="convert-status"></p>
+</main>
+<footer>
+    <p>© 2025 HEIC to JPEG Converter</p>
+</footer>
+</body>
+</html>
