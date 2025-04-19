@@ -24,7 +24,7 @@ async function convertHeicToJpeg() {
             document.body.removeChild(a);
         } catch (err) {
             console.error("Error converting", file.name, err);
-            status.textContent += `\nFailed to convert ${file.name}`;
+            status.textContent += `\nFailed to convert ${file.name} ${file.type}`;
         }
     }
 
