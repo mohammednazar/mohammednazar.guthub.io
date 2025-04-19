@@ -13,16 +13,25 @@ async function splitPdf() {
     const pdfDoc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
     const totalPages = pdfDoc.getPageCount();
 
+    // Helper to delay download per page
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     for (let i = 0; i < totalPages; i++) {
         const newDoc = await PDFLib.PDFDocument.create();
         const [page] = await newDoc.copyPages(pdfDoc, [i]);
         newDoc.addPage(page);
         const pdfBytes = await newDoc.save();
+
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
+        link.href = URL.createObjectURL(blob);
         link.download = `page_${i + 1}.pdf`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+
+        await delay(300); // 300ms delay to prevent browser blocking
     }
 
-    status.textContent = "PDF split completed! Files downloaded.";
+    status.textContent = "✅ PDF split completed! All files downloaded.";
 }
