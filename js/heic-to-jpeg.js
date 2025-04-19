@@ -9,14 +9,21 @@ async function convertHeicToJpeg() {
     }
 
     for (const file of input.files) {
+        console.log(`Attempting to convert file: ${file.name}`);
+        console.log(`Type: ${file.type}, Size: ${file.size} bytes`);
+
         try {
-            const arrayBuffer = await file.arrayBuffer(); // safer way
+            const arrayBuffer = await file.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: file.type || "image/heic" });
+            console.log("Blob created:", blob);
+
             const jpegBlob = await heic2any({
-                blob: new Blob([arrayBuffer]),
+                blob: blob,
                 toType: "image/jpeg",
                 quality: 0.9
             });
 
+            console.log(`Conversion successful for: ${file.name}`);
             const a = document.createElement("a");
             a.href = URL.createObjectURL(jpegBlob);
             a.download = file.name.replace(/\.[^/.]+$/, "") + ".jpeg";
@@ -24,11 +31,10 @@ async function convertHeicToJpeg() {
             a.click();
             document.body.removeChild(a);
         } catch (err) {
-            console.error("❌ Error converting", file.name, err);
-            status.textContent += `\nFailed to convert ${file.name}`;
+            console.error(`❌ Error converting ${file.name}:`, err);
+            status.textContent += `\n❌ Failed to convert ${file.name}: ${err.message || err}`;
         }
     }
 
-    status.textContent += "\nConversion complete!";
+    status.textContent += "\n✅ Conversion process finished!";
 }
-
