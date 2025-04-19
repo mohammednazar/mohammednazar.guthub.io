@@ -36,44 +36,7 @@
     <h1>Split PDF into Pages & Download as ZIP</h1>
 
     <input type="file" id="pdf-input" accept="application/pdf">
-    <button onclick="splitPdfToZip()">Split & Download ZIP</button>
+    <button onclick="js/splitPdfToZip()">Split & Download ZIP</button>
     <p id="split-status"></p>
-
-    <script>
-        async function splitPdfToZip() {
-            const input = document.getElementById('pdf-input');
-            const status = document.getElementById('split-status');
-
-            if (!input.files.length) {
-                status.textContent = "❌ Please select a PDF file first!";
-                return;
-            }
-
-            const file = input.files[0];
-            status.textContent = "⏳ Splitting PDF and generating ZIP...";
-
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-            const totalPages = pdfDoc.getPageCount();
-
-            const zip = new JSZip();
-
-            for (let i = 0; i < totalPages; i++) {
-                const newDoc = await PDFLib.PDFDocument.create();
-                const [page] = await newDoc.copyPages(pdfDoc, [i]);
-                newDoc.addPage(page);
-                const pdfBytes = await newDoc.save();
-                zip.file(`page_${i + 1}.pdf`, pdfBytes);
-            }
-
-            const zipBlob = await zip.generateAsync({ type: "blob" });
-            const zipLink = document.createElement('a');
-            zipLink.href = URL.createObjectURL(zipBlob);
-            zipLink.download = `split_pages.zip`;
-            zipLink.click();
-
-            status.textContent = `✅ ${totalPages} page(s) split and zipped successfully!`;
-        }
-    </script>
 </body>
 </html>
