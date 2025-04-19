@@ -1,17 +1,21 @@
 async function convertHeicToJpeg() {
     const input = document.getElementById("heic-input");
     const status = document.getElementById("convert-status");
-    status.textContent = "";
+    status.textContent = "Processing...";
 
     if (!input.files.length) {
         status.textContent = "Please select HEIC files first.";
         return;
     }
 
+    let successCount = 0;
+    let failList = [];
+
     for (const file of input.files) {
         try {
+            const arrayBuffer = await file.arrayBuffer();
             const jpegBlob = await heic2any({
-                blob: file,
+                blob: new Blob([arrayBuffer]),
                 toType: "image/jpeg",
                 quality: 0.9
             });
@@ -22,11 +26,17 @@ async function convertHeicToJpeg() {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+
+            successCount++;
         } catch (err) {
-            console.error("Error converting", file.name, err);
-            status.textContent += `\nFailed to convert ${file.name} ${file.type}`;
+            console.error(`❌ Failed to convert ${file.name}:`, err);
+            failList.push(file.name);
         }
     }
 
-    status.textContent += "\nConversion complete!";
+    let message = `${successCount} file(s) converted successfully.`;
+    if (failList.length) {
+        message += `\nFailed to convert: ${failList.join(", ")}`;
+    }
+    status.textContent = message;
 }
