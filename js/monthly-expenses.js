@@ -166,7 +166,25 @@ function addExpenseRow(expense = { type: "", amount: "", paid: "no", dueDate: ""
     <td><input type="date" value="${expense.dueDate}" /></td>
     <td><button onclick="removeExpenseRow(this)">Remove</button></td>
   `;
+
+  // Add listeners for dynamic row inputs
+  newRow.cells[1].querySelector('input').addEventListener('input', () => {
+    saveExpenses();
+    calculateTotals();
+  });
+  newRow.cells[2].querySelector('select').addEventListener('change', () => {
+    saveExpenses();
+    calculateTotals();
+  });
+  newRow.cells[3].querySelector('input').addEventListener('change', () => {
+    saveExpenses();
+    calculateTotals();
+  });
+
+  // Save new row data
+  saveExpenses();
 }
+
 
 function removeExpenseRow(button) {
   const row = button.closest("tr");
