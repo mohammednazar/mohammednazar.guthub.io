@@ -9,18 +9,22 @@ window.onload = () => {
 function setupListeners() {
   const rows = document.querySelectorAll('#expenses-table tbody tr');
   rows.forEach(row => {
-    row.cells[1].querySelector('input').addEventListener('input', () => {
-      saveExpenses();
-      calculateTotals();
-    });
-    row.cells[2].querySelector('select').addEventListener('change', () => {
-      saveExpenses();
-      calculateTotals();
-    });
-    row.cells[3].querySelector('input').addEventListener('change', () => {
-      saveExpenses();
-      calculateTotals();
-    });
+    attachListeners(row);
+  });
+}
+
+function attachListeners(row) {
+  row.cells[1].querySelector('input').addEventListener('input', () => {
+    saveExpenses();
+    calculateTotals();
+  });
+  row.cells[2].querySelector('select').addEventListener('change', () => {
+    saveExpenses();
+    calculateTotals();
+  });
+  row.cells[3].querySelector('input').addEventListener('change', () => {
+    saveExpenses();
+    calculateTotals();
   });
 }
 
@@ -40,14 +44,10 @@ function saveExpenses() {
 
 function loadExpenses() {
   const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  const rows = document.querySelectorAll('#expenses-table tbody tr');
-  rows.forEach((row, index) => {
-    if (data[index]) {
-      row.cells[1].querySelector('input').value = data[index].amount || '';
-      row.cells[2].querySelector('select').value = data[index].paid || 'no';
-      row.cells[3].querySelector('input').value = data[index].dueDate || '';
-    }
-  });
+  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
+  expensesTable.innerHTML = ""; // Clear existing rows
+
+  data.forEach(expense => addExpenseRow(expense));
 }
 
 function calculateTotals() {
@@ -70,23 +70,22 @@ function calculateTotals() {
 
     if (paid === 'yes') {
       paidAmount += amount;
-      row.style.backgroundColor = '#d4edda'; // light green
+      row.style.backgroundColor = '#d4edda'; // Light green for paid
     } else {
       unpaidAmount += amount;
 
       if (dueDateValue) {
-      const dueDate = new Date(dueDateValue);
-      const isPastDue = dueDate < today.setHours(0, 0, 0, 0); // handles time
-      const isDueSoon = dueDate <= inTwoDays;
+        const dueDate = new Date(dueDateValue);
+        const isPastDue = dueDate < today.setHours(0, 0, 0, 0); // Handles time
+        const isDueSoon = dueDate <= inTwoDays;
 
-      if (isPastDue || isDueSoon) {
-        row.style.backgroundColor = '#f8d7da'; // 🔴 light red for both
+        if (isPastDue || isDueSoon) {
+          row.style.backgroundColor = '#f8d7da'; // Light red for urgent unpaid
+        } else {
+          row.style.backgroundColor = ''; // Clear if not urgent
+        }
       } else {
-        row.style.backgroundColor = ''; // clear if not urgent
-      }
-
-      } else {
-        row.style.backgroundColor = ''; // no due date, no highlight
+        row.style.backgroundColor = ''; // No due date, no highlight
       }
     }
   });
@@ -139,17 +138,6 @@ function clearExpenses() {
   calculateTotals();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
-
-  // Load saved expenses from localStorage
-  const savedExpenses = JSON.parse(localStorage.getItem("expenses")) || [];
-  savedExpenses.forEach(expense => addExpenseRow(expense));
-
-  // Save the current state whenever changes occur
-  expensesTable.addEventListener("input", saveExpenses);
-});
-
 function addExpenseRow(expense = { type: "", amount: "", paid: "no", dueDate: "" }) {
   const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
   const newRow = expensesTable.insertRow();
@@ -164,47 +152,9 @@ function addExpenseRow(expense = { type: "", amount: "", paid: "no", dueDate: ""
       </select>
     </td>
     <td><input type="date" value="${expense.dueDate}" /></td>
-    <td><button onclick="removeExpenseRow(this)">Remove</button></td>
+    <td><button onclick="removeExpenseRow(this)">Delete Expense</button></td>
   `;
 
-  // Add listeners for dynamic row inputs
-  newRow.cells[1].querySelector('input').addEventListener('input', () => {
-    saveExpenses();
-    calculateTotals();
-  });
-  newRow.cells[2].querySelector('select').addEventListener('change', () => {
-    saveExpenses();
-    calculateTotals();
-  });
-  newRow.cells[3].querySelector('input').addEventListener('change', () => {
-    saveExpenses();
-    calculateTotals();
-  });
-
-  // Save new row data
+  attachListeners(newRow);
   saveExpenses();
 }
-
-
-function removeExpenseRow(button) {
-  const row = button.closest("tr");
-  row.remove();
-  saveExpenses();
-}
-
-function saveExpenses() {
-  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
-  const expenses = Array.from(expensesTable.rows).map(row => ({
-    type: row.cells[0].querySelector("input").value,
-    amount: row.cells[1].querySelector("input").value,
-    paid: row.cells[2].querySelector("select").value,
-    dueDate: row.cells[3].querySelector("input").value
-  }));
-  localStorage.setItem("expenses", JSON.stringify(expenses));
-}
-
-function clearExpenses() {
-  localStorage.removeItem("expenses");
-  location.reload();
-}
-
