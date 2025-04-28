@@ -138,3 +138,55 @@ function clearExpenses() {
   });
   calculateTotals();
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
+
+  // Load saved expenses from localStorage
+  const savedExpenses = JSON.parse(localStorage.getItem("expenses")) || [];
+  savedExpenses.forEach(expense => addExpenseRow(expense));
+
+  // Save the current state whenever changes occur
+  expensesTable.addEventListener("input", saveExpenses);
+});
+
+function addExpenseRow(expense = { type: "", amount: "", paid: "no", dueDate: "" }) {
+  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
+  const newRow = expensesTable.insertRow();
+
+  newRow.innerHTML = `
+    <td><input type="text" value="${expense.type}" /></td>
+    <td><input type="number" value="${expense.amount}" /></td>
+    <td>
+      <select>
+        <option value="no" ${expense.paid === "no" ? "selected" : ""}>No</option>
+        <option value="yes" ${expense.paid === "yes" ? "selected" : ""}>Yes</option>
+      </select>
+    </td>
+    <td><input type="date" value="${expense.dueDate}" /></td>
+    <td><button onclick="removeExpenseRow(this)">Remove</button></td>
+  `;
+}
+
+function removeExpenseRow(button) {
+  const row = button.closest("tr");
+  row.remove();
+  saveExpenses();
+}
+
+function saveExpenses() {
+  const expensesTable = document.getElementById("expenses-table").querySelector("tbody");
+  const expenses = Array.from(expensesTable.rows).map(row => ({
+    type: row.cells[0].querySelector("input").value,
+    amount: row.cells[1].querySelector("input").value,
+    paid: row.cells[2].querySelector("select").value,
+    dueDate: row.cells[3].querySelector("input").value
+  }));
+  localStorage.setItem("expenses", JSON.stringify(expenses));
+}
+
+function clearExpenses() {
+  localStorage.removeItem("expenses");
+  location.reload();
+}
+
