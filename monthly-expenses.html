@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Monthly Expenses Tracker</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="js/monthly-expenses.js" defer></script>
+  <script src="monthly-expenses.js" defer></script>
 </head>
 <body>
   <header>
@@ -13,14 +13,13 @@
   </header>
 
   <main>
-<div style="margin: 20px 0;">
-  <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
-  <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
-  <button class="button" onclick="exportCSV()">Export as CSV</button>
-  <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
-  <button class="button" onclick="addExpenseRow()">Add Expense</button>
-</div>
-
+    <div style="margin: 20px 0;">
+      <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
+      <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
+      <button class="button" onclick="exportCSV()">Export as CSV</button>
+      <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
+      <button class="button" onclick="addExpenseRow()">Add Expense</button>
+    </div>
 
     <table id="expenses-table">
       <thead>
@@ -29,27 +28,35 @@
           <th>Amount ($)</th>
           <th>Paid?</th>
           <th>Due Date (Optional)</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>Alectra</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Enbridge</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Water</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Protperty Tax</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC CC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>MBNA CC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Tangerine CC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CT CC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC Rida</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC LOC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Tangerine LOC</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC LOC Sabi</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Tangerine LOC Sabi</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Afrida Insurance</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>H&A Insurance</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Sabi RRSP</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Home Loan</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Cash</td><td><input type="number" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
+        <tr>
+          <td>Alectra</td>
+          <td><input type="number" /></td>
+          <td>
+            <select>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </td>
+          <td><input type="date" /></td>
+          <td><button onclick="removeExpenseRow(this)">Delete Expense</button></td>
+        </tr>
+        <tr>
+          <td>Enbridge</td>
+          <td><input type="number" /></td>
+          <td>
+            <select>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </td>
+          <td><input type="date" /></td>
+          <td><button onclick="removeExpenseRow(this)">Delete Expense</button></td>
+        </tr>
+        <!-- Add more rows here as needed -->
       </tbody>
       <tfoot>
         <tr>
@@ -57,6 +64,7 @@
           <td id="total-amount">$0.00</td>
           <td id="total-paid">$0.00 Paid</td>
           <td id="total-unpaid">$0.00 Unpaid</td>
+          <td></td>
         </tr>
       </tfoot>
     </table>
