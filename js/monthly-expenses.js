@@ -158,3 +158,10 @@ function addExpenseRow(expense = { type: "", amount: "", paid: "no", dueDate: ""
   attachListeners(newRow);
   saveExpenses();
 }
+
+function removeExpenseRow(button) {
+  const row = button.closest("tr");
+  row.remove();
+  saveExpenses(); // Update the saved data in localStorage
+}
+
