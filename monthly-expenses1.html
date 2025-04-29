@@ -11,14 +11,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
   <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
-  authDomain: "expensetracker-f57ff.firebaseapp.com",
-  projectId: "expensetracker-f57ff",
-  storageBucket: "expensetracker-f57ff.firebasestorage.app",
-  messagingSenderId: "1034695983927",
-  appId: "1:1034695983927:web:cf632c31f9089ccbc9d0b2"
-};
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
@@ -47,6 +47,12 @@ const firebaseConfig = {
       });
     };
 
+    window.onbeforeunload = async () => {
+      if (userId) {
+        await saveAllRowsToFirestore();
+      }
+    };
+
     function signIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider);
@@ -61,8 +67,6 @@ const firebaseConfig = {
         ['input', 'change'].forEach(evt => {
           row.querySelectorAll('input, select').forEach(input => {
             input.addEventListener(evt, () => {
-              const docId = row.getAttribute('data-id');
-              saveRowToFirestore(row, docId);
               calculateTotals();
             });
           });
@@ -92,23 +96,43 @@ const firebaseConfig = {
       setupDragAndDrop();
     }
 
-    async function saveRowToFirestore(row, docId) {
-      const cells = row.cells;
-      const expense = {
-        name: cells[0].querySelector('input').value,
-        amount: cells[1].querySelector('input').value,
-        paid: cells[2].querySelector('select').value,
-        dueDate: cells[3].querySelector('input').value
-      };
-      await db.collection('users').doc(userId).collection('expenses').doc(docId).set(expense);
+    async function saveAllRowsToFirestore() {
+      const rows = document.querySelectorAll('#expenses-table tbody tr');
+      const batch = db.batch();
+      const expensesRef = db.collection('users').doc(userId).collection('expenses');
+
+      rows.forEach(row => {
+        const cells = row.cells;
+        const docId = row.getAttribute('data-id');
+        const docRef = expensesRef.doc(docId);
+        batch.set(docRef, {
+          name: cells[0].querySelector('input').value.trim(),
+          amount: cells[1].querySelector('input').value.trim(),
+          paid: cells[2].querySelector('select').value,
+          dueDate: cells[3].querySelector('input').value
+        });
+      });
+
+      await batch.commit();
     }
 
     async function loadExpenses() {
-      const snapshot = await db.collection('users').doc(userId).collection('expenses').get();
+      const expensesRef = db.collection('users').doc(userId).collection('expenses');
+      const snapshot = await expensesRef.get();
       const tbody = document.querySelector('#expenses-table tbody');
       tbody.innerHTML = '';
+
       if (snapshot.empty) {
-        DEFAULT_EXPENSES.forEach(name => addExpense(name));
+        DEFAULT_EXPENSES.forEach(async name => {
+          const newDocRef = expensesRef.doc();
+          await newDocRef.set({
+            name: name,
+            amount: '',
+            paid: 'no',
+            dueDate: ''
+          });
+        });
+        setTimeout(loadExpenses, 1000);
       } else {
         snapshot.forEach(doc => {
           const { name, amount, paid, dueDate } = doc.data();
@@ -169,7 +193,9 @@ const firebaseConfig = {
             }
           }
         });
-        row.addEventListener('drop', () => saveRowToFirestore(draggedRow, draggedRow.getAttribute('data-id')));
+        row.addEventListener('drop', async () => {
+          await saveAllRowsToFirestore();
+        });
       });
     }
   </script>
