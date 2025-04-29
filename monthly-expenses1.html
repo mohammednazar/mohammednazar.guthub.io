@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Monthly Expenses Tracker</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
@@ -11,14 +11,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
   <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
-  authDomain: "expensetracker-f57ff.firebaseapp.com",
-  projectId: "expensetracker-f57ff",
-  storageBucket: "expensetracker-f57ff.firebasestorage.app",
-  messagingSenderId: "1034695983927",
-  appId: "1:1034695983927:web:cf632c31f9089ccbc9d0b2"
-};
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
@@ -34,26 +34,35 @@ const firebaseConfig = {
 
     let userId = null;
 
-    <!-- window.onload = () => { -->
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          userId = user.uid;
-          document.getElementById('auth-buttons').innerHTML = `<button onclick="signOut()">Sign Out</button>`;
-          loadExpenses();
-        } else {
-          document.getElementById('auth-buttons').innerHTML = `<button onclick="signIn()">Sign In with Google</button>`;
-          document.querySelector('#expenses-table tbody').innerHTML = '<tr><td colspan="5">Please sign in to view your expenses.</td></tr>';
-        }
-      });
-    <!-- }; -->
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        userId = user.uid;
+        document.getElementById('auth-status').innerHTML = `<span>Signed in as: ${user.email}</span> <button onclick="signOut()">Sign Out</button>`;
+        loadExpenses();
+      } else {
+        document.getElementById('auth-status').innerHTML = '';
+        document.querySelector('#expenses-table tbody').innerHTML = '<tr><td colspan="5">Please sign in to view your expenses.</td></tr>';
+      }
+    });
+
+    function signUp() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => alert('Signed up successfully!'))
+        .catch(error => alert('Error signing up: ' + error.message));
+    }
 
     function signIn() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider);
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => console.log('Signed in successfully!'))
+        .catch(error => alert('Error signing in: ' + error.message));
     }
 
     function signOut() {
-      auth.signOut();
+      auth.signOut().then(() => console.log('Signed out successfully!'));
     }
 
     function setupListeners() {
@@ -79,15 +88,15 @@ const firebaseConfig = {
       row.setAttribute('data-id', docId || Date.now().toString());
       row.draggable = true;
       row.innerHTML = `
-        <td><input type="text" value="${name}" placeholder="Expense Name" /></td>
-        <td><input type="number" value="${amount}" /></td>
+        <td><input type="text" value="${name}" placeholder="Expense Name"></td>
+        <td><input type="number" value="${amount}"></td>
         <td>
           <select>
             <option value="no" ${paid === 'no' ? 'selected' : ''}>No</option>
             <option value="yes" ${paid === 'yes' ? 'selected' : ''}>Yes</option>
           </select>
         </td>
-        <td><input type="date" value="${dueDate}" /></td>
+        <td><input type="date" value="${dueDate}"></td>
         <td><button onclick="removeExpense(this)">Remove</button></td>
       `;
       tbody.appendChild(row);
@@ -199,7 +208,13 @@ const firebaseConfig = {
   <header>
     <h1>Monthly Expenses Tracker</h1>
     <nav><a href="index.html">Home</a></nav>
-    <div id="auth-buttons"></div>
+    <div id="auth-buttons">
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="signUp()">Sign Up</button>
+      <button onclick="signIn()">Sign In</button>
+    </div>
+    <div id="auth-status"></div>
   </header>
 
   <main>
