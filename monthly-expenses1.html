@@ -8,53 +8,194 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
-  <!-- Your Firebase Config -->
   <script>
     const firebaseConfig = {
-        apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
-        authDomain: "expensetracker-f57ff.firebaseapp.com",
-        projectId: "expensetracker-f57ff",
-        storageBucket: "expensetracker-f57ff.firebasestorage.app",
-        messagingSenderId: "1034695983927",
-        appId: "1:1034695983927:web:cf632c31f9089ccbc9d0b2"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
   </script>
 
-  <!-- Your JS (loaded after Firebase is ready) -->
-  <script src="js/monthly-expenses1.js" defer></script>
-</head>
+  <script defer>
+    const DEFAULT_EXPENSES = [
+      'Alectra', 'Enbridge', 'Water', 'Property Tax', 'CIBC CC', 'MBNA CC',
+      'Tangerine CC', 'CT CC', 'CIBC Rida', 'CIBC LOC', 'Tangerine LOC',
+      'CIBC LOC Sabi', 'Tangerine LOC Sabi', 'Afrida Insurance', 'H&A Insurance',
+      'Sabi RRSP', 'Home Loan', 'Cash'
+    ];
 
+    let userId = null;
+
+    window.onload = () => {
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          userId = user.uid;
+          document.getElementById('auth-buttons').innerHTML = `<button onclick="signOut()">Sign Out</button>`;
+          loadExpenses();
+        } else {
+          document.getElementById('auth-buttons').innerHTML = `<button onclick="signIn()">Sign In with Google</button>`;
+          document.querySelector('#expenses-table tbody').innerHTML = '<tr><td colspan="5">Please sign in to view your expenses.</td></tr>';
+        }
+      });
+    };
+
+    function signIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider);
+    }
+
+    function signOut() {
+      auth.signOut();
+    }
+
+    function setupListeners() {
+      document.querySelectorAll('#expenses-table tbody tr').forEach(row => {
+        ['input', 'change'].forEach(evt => {
+          row.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener(evt, () => {
+              const docId = row.getAttribute('data-id');
+              saveRowToFirestore(row, docId);
+              calculateTotals();
+            });
+          });
+        });
+      });
+    }
+
+    function addExpense(name = '', amount = '', paid = 'no', dueDate = '', docId = '') {
+      const tbody = document.querySelector('#expenses-table tbody');
+      const row = document.createElement('tr');
+      row.setAttribute('data-id', docId || Date.now().toString());
+      row.draggable = true;
+      row.innerHTML = `
+        <td><input type="text" value="${name}" placeholder="Expense Name" /></td>
+        <td><input type="number" value="${amount}" /></td>
+        <td>
+          <select>
+            <option value="no" ${paid === 'no' ? 'selected' : ''}>No</option>
+            <option value="yes" ${paid === 'yes' ? 'selected' : ''}>Yes</option>
+          </select>
+        </td>
+        <td><input type="date" value="${dueDate}" /></td>
+        <td><button onclick="removeExpense(this)">Remove</button></td>
+      `;
+      tbody.appendChild(row);
+      setupListeners();
+      setupDragAndDrop();
+    }
+
+    async function saveRowToFirestore(row, docId) {
+      const cells = row.cells;
+      const expense = {
+        name: cells[0].querySelector('input').value,
+        amount: cells[1].querySelector('input').value,
+        paid: cells[2].querySelector('select').value,
+        dueDate: cells[3].querySelector('input').value
+      };
+      await db.collection('users').doc(userId).collection('expenses').doc(docId).set(expense);
+    }
+
+    async function loadExpenses() {
+      const snapshot = await db.collection('users').doc(userId).collection('expenses').get();
+      const tbody = document.querySelector('#expenses-table tbody');
+      tbody.innerHTML = '';
+      if (snapshot.empty) {
+        DEFAULT_EXPENSES.forEach(name => addExpense(name));
+      } else {
+        snapshot.forEach(doc => {
+          const { name, amount, paid, dueDate } = doc.data();
+          addExpense(name, amount, paid, dueDate, doc.id);
+        });
+      }
+      calculateTotals();
+    }
+
+    async function removeExpense(button) {
+      const row = button.closest('tr');
+      const docId = row.getAttribute('data-id');
+      await db.collection('users').doc(userId).collection('expenses').doc(docId).delete();
+      row.remove();
+      calculateTotals();
+    }
+
+    function calculateTotals() {
+      let total = 0, paid = 0, unpaid = 0;
+      const today = new Date(), soon = new Date();
+      soon.setDate(today.getDate() + 2);
+
+      document.querySelectorAll('#expenses-table tbody tr').forEach(row => {
+        const amount = parseFloat(row.cells[1].querySelector('input').value) || 0;
+        const status = row.cells[2].querySelector('select').value;
+        const due = row.cells[3].querySelector('input').value;
+
+        total += amount;
+        if (status === 'yes') {
+          paid += amount;
+          row.style.backgroundColor = '#d4edda';
+        } else {
+          unpaid += amount;
+          row.style.backgroundColor = due && new Date(due) <= soon ? '#f8d7da' : '';
+        }
+      });
+
+      document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('total-paid').textContent = `$${paid.toFixed(2)} Paid`;
+      document.getElementById('total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
+    }
+
+    function setupDragAndDrop() {
+      let draggedRow;
+      document.querySelectorAll('#expenses-table tbody tr').forEach(row => {
+        row.draggable = true;
+        row.addEventListener('dragstart', () => draggedRow = row);
+        row.addEventListener('dragover', e => {
+          e.preventDefault();
+          if (draggedRow && draggedRow !== row) {
+            const rows = Array.from(row.parentNode.children);
+            const draggedIndex = rows.indexOf(draggedRow);
+            const targetIndex = rows.indexOf(row);
+            if (draggedIndex < targetIndex) {
+              row.parentNode.insertBefore(draggedRow, row.nextSibling);
+            } else {
+              row.parentNode.insertBefore(draggedRow, row);
+            }
+          }
+        });
+        row.addEventListener('drop', () => saveRowToFirestore(draggedRow, draggedRow.getAttribute('data-id')));
+      });
+    }
+  </script>
+</head>
 <body>
   <header>
     <h1>Monthly Expenses Tracker</h1>
     <nav><a href="index.html">Home</a></nav>
+    <div id="auth-buttons"></div>
   </header>
 
   <main>
     <div style="margin: 20px 0;">
-      <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
-      <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
-      <button class="button" onclick="exportCSV()">Export as CSV</button>
-      <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
-      <button class="button" onclick="addExpense()">Add New Expense</button>
+      <button onclick="addExpense()">Add New Expense</button>
     </div>
-
     <table id="expenses-table">
       <thead>
         <tr>
           <th>Expense Type</th>
           <th>Amount ($)</th>
           <th>Paid?</th>
-          <th>Due Date (Optional)</th>
+          <th>Due Date</th>
           <th>Remove</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Dynamic rows inserted here -->
-      </tbody>
+      <tbody></tbody>
       <tfoot>
         <tr>
           <td><strong>Total</strong></td>
