@@ -101,25 +101,27 @@ const firebaseConfig = {
         name: cells[0].querySelector('input').value.trim(),
         amount: cells[1].querySelector('input').value.trim(),
         paid: cells[2].querySelector('select').value,
-        dueDate: cells[3].querySelector('input').value
+        dueDate: cells[3].querySelector('input').value,
+        order: Array.from(row.parentNode.children).indexOf(row)
       };
       db.collection('users').doc(userId).collection('expenses').doc(docId).set(data);
     }
 
     async function loadExpenses() {
       const expensesRef = db.collection('users').doc(userId).collection('expenses');
-      const snapshot = await expensesRef.get();
+      const snapshot = await expensesRef.orderBy('order').get();
       const tbody = document.querySelector('#expenses-table tbody');
       tbody.innerHTML = '';
 
       if (snapshot.empty) {
-        DEFAULT_EXPENSES.forEach(async name => {
+        DEFAULT_EXPENSES.forEach(async (name, index) => {
           const newDocRef = expensesRef.doc();
           await newDocRef.set({
             name: name,
             amount: '',
             paid: 'no',
-            dueDate: ''
+            dueDate: '',
+            order: index
           });
         });
         setTimeout(loadExpenses, 1000);
@@ -184,8 +186,10 @@ const firebaseConfig = {
           }
         });
         row.addEventListener('drop', () => {
-          const docId = draggedRow.getAttribute('data-id');
-          saveRowToFirestore(draggedRow, docId);
+          document.querySelectorAll('#expenses-table tbody tr').forEach(r => {
+            const docId = r.getAttribute('data-id');
+            saveRowToFirestore(r, docId);
+          });
         });
       });
     }
