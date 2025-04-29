@@ -47,12 +47,6 @@ const firebaseConfig = {
       });
     };
 
-    window.onbeforeunload = async () => {
-      if (userId) {
-        await saveAllRowsToFirestore();
-      }
-    };
-
     function signIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider);
@@ -64,11 +58,16 @@ const firebaseConfig = {
 
     function setupListeners() {
       document.querySelectorAll('#expenses-table tbody tr').forEach(row => {
-        ['input', 'change'].forEach(evt => {
-          row.querySelectorAll('input, select').forEach(input => {
-            input.addEventListener(evt, () => {
-              calculateTotals();
-            });
+        const docId = row.getAttribute('data-id');
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+          input.addEventListener('input', () => {
+            saveRowToFirestore(row, docId);
+            calculateTotals();
+          });
+          input.addEventListener('change', () => {
+            saveRowToFirestore(row, docId);
+            calculateTotals();
           });
         });
       });
@@ -96,24 +95,15 @@ const firebaseConfig = {
       setupDragAndDrop();
     }
 
-    async function saveAllRowsToFirestore() {
-      const rows = document.querySelectorAll('#expenses-table tbody tr');
-      const batch = db.batch();
-      const expensesRef = db.collection('users').doc(userId).collection('expenses');
-
-      rows.forEach(row => {
-        const cells = row.cells;
-        const docId = row.getAttribute('data-id');
-        const docRef = expensesRef.doc(docId);
-        batch.set(docRef, {
-          name: cells[0].querySelector('input').value.trim(),
-          amount: cells[1].querySelector('input').value.trim(),
-          paid: cells[2].querySelector('select').value,
-          dueDate: cells[3].querySelector('input').value
-        });
-      });
-
-      await batch.commit();
+    function saveRowToFirestore(row, docId) {
+      const cells = row.cells;
+      const data = {
+        name: cells[0].querySelector('input').value.trim(),
+        amount: cells[1].querySelector('input').value.trim(),
+        paid: cells[2].querySelector('select').value,
+        dueDate: cells[3].querySelector('input').value
+      };
+      db.collection('users').doc(userId).collection('expenses').doc(docId).set(data);
     }
 
     async function loadExpenses() {
@@ -193,8 +183,9 @@ const firebaseConfig = {
             }
           }
         });
-        row.addEventListener('drop', async () => {
-          await saveAllRowsToFirestore();
+        row.addEventListener('drop', () => {
+          const docId = draggedRow.getAttribute('data-id');
+          saveRowToFirestore(draggedRow, docId);
         });
       });
     }
