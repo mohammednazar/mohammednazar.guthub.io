@@ -1,70 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Monthly Expenses Tracker</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="js/monthly-expenses.js" defer></script>
+  <meta charset="UTF-8" />
+  <title>Monthly Expenses Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+
+  <!-- Your Firebase Config -->
+  <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
+        authDomain: "expensetracker-f57ff.firebaseapp.com",
+        projectId: "expensetracker-f57ff",
+        storageBucket: "expensetracker-f57ff.firebasestorage.app",
+        messagingSenderId: "1034695983927",
+        appId: "1:1034695983927:web:cf632c31f9089ccbc9d0b2"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <!-- Your JS (loaded after Firebase is ready) -->
+  <script src="js/monthly-expenses1.js" defer></script>
 </head>
+
 <body>
-<header>
+  <header>
     <h1>Monthly Expenses Tracker</h1>
     <nav><a href="index.html">Home</a></nav>
-</header>
+  </header>
 
-<main>
-<div style="margin: 20px 0;">
-    <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
-    <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
-    <button class="button" onclick="exportCSV()">Export as CSV</button> <!-- 🆕 -->
-</div>
+  <main>
+    <div style="margin: 20px 0;">
+      <button class="button" onclick="setAllPaid('yes')">Mark All as Paid</button>
+      <button class="button" onclick="setAllPaid('no')">Mark All as Unpaid</button>
+      <button class="button" onclick="exportCSV()">Export as CSV</button>
+      <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
+      <button class="button" onclick="addExpense()">Add New Expense</button>
+    </div>
 
-
-<table id="expenses-table">
-    <thead>
+    <table id="expenses-table">
+      <thead>
         <tr>
-            <th>Expense Type</th>
-            <th>Amount ($)</th>
-            <th>Paid?</th>
-            <th>Due Date (Optional)</th>
+          <th>Expense Type</th>
+          <th>Amount ($)</th>
+          <th>Paid?</th>
+          <th>Due Date (Optional)</th>
+          <th>Remove</th>
         </tr>
-    </thead>
-    <tbody>
-        <!-- existing rows -->
-        <tr><td>Alectra</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Enbridge</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Water</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Property Tax</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC CC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>MBNA CC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Tangerine CC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CT CC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC Rida</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>CIBC LOC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Tangerine LOC</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Afrida Insurance</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Auto & Home Insurance</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Sabi RRSP</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Home Loan</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-        <tr><td>Cash</td><td><input type="number" min="0" /></td><td><select><option value="no">No</option><option value="yes">Yes</option></select></td><td><input type="date" /></td></tr>
-    </tbody>
-    <tfoot>
+      </thead>
+      <tbody>
+        <!-- Dynamic rows inserted here -->
+      </tbody>
+      <tfoot>
         <tr>
-            <td><strong>Total</strong></td>
-            <td id="total-amount">$0.00</td>
-            <td id="total-paid">$0.00 Paid</td>
-            <td id="total-unpaid">$0.00 Unpaid</td>
+          <td><strong>Total</strong></td>
+          <td id="total-amount">$0.00</td>
+          <td id="total-paid">$0.00 Paid</td>
+          <td id="total-unpaid">$0.00 Unpaid</td>
+          <td></td>
         </tr>
-    </tfoot>
-</table>
+      </tfoot>
+    </table>
+  </main>
 
-<div style="margin: 20px 0;">
-    <button class="button" onclick="clearExpenses()">Clear for Next Month</button>
-</div>
-</main>
-
-<footer>
+  <footer>
     <p>© 2025 Monthly Expenses Tracker</p>
-</footer>
+  </footer>
 </body>
 </html>
