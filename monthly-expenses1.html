@@ -34,7 +34,7 @@ const firebaseConfig = {
 
     let userId = null;
 
-    window.onload = () => {
+    <!-- window.onload = () => { -->
       auth.onAuthStateChanged(user => {
         if (user) {
           userId = user.uid;
@@ -45,7 +45,7 @@ const firebaseConfig = {
           document.querySelector('#expenses-table tbody').innerHTML = '<tr><td colspan="5">Please sign in to view your expenses.</td></tr>';
         }
       });
-    };
+    <!-- }; -->
 
     function signIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
