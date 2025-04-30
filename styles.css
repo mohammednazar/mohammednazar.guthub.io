@@ -1,19 +1,39 @@
-/* Make entire body wider */
+/* Expand the full page to fit the table */
 body {
-  max-width: 2000px;  /* or even 1600px depending on your screen */
-  margin: 0 auto;     /* center the content */
+  max-width: 1600px;  /* wider page frame */
+  margin: 0 auto;
   padding: 20px;
 }
 
-/* Ensure table fills the page width without scroll */
+/* Expand the table container */
 main {
   overflow-x: visible;
 }
 
-/* Make table fill available space */
+/* Expand the table itself */
 #expenses-table {
-  width: 100%;
+  width: 1600px;         /* adjust to fit your screen */
+  max-width: 100%;
   table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Optional: Make each column proportional */
+#expenses-table th:first-child,
+#expenses-table td:first-child {
+  width: 300px;
+}
+
+#expenses-table th:nth-child(2),
+#expenses-table td:nth-child(2) {
+  width: 150px;
+}
+
+#expenses-table th:nth-child(3),
+#expenses-table td:nth-child(3),
+#expenses-table th:nth-child(4),
+#expenses-table td:nth-child(4) {
+  width: 180px;
 }
 
 
