@@ -127,7 +127,7 @@ function calculateTotals() {
       unpaidAmount += amount;
       if (dueDateValue) {
         const dueDate = new Date(dueDateValue);
-        const isPastDue = dueDate < today.setHours(0, 0, 0, 0);
+        const isPastDue = dueDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const isDueSoon = dueDate <= inTwoDays;
         row.style.backgroundColor = (isPastDue || isDueSoon) ? '#f8d7da' : '';
       } else {
