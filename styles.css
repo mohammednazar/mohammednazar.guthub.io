@@ -126,3 +126,10 @@ button {
 .remove-button:hover {
   background-color: #d32f2f;
 }
+
+#expenses-table td:first-child,
+#expenses-table th:first-child {
+  min-width: 200px; /* or adjust to 250px, 300px etc. */
+  max-width: 300px;
+  width: 25%;
+}
