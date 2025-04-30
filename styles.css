@@ -127,20 +127,37 @@ button {
   background-color: #d32f2f;
 }
 
-/* Force fixed column layout */
-#expenses-table {
-  table-layout: fixed;
-  width: 100%;
+/* Expand table container */
+main {
+  overflow-x: auto; /* allow scroll if needed */
 }
 
-/* Make first column wider */
+/* Wider full table */
+#expenses-table {
+  table-layout: fixed;
+  width: 1200px; /* Or try 100%, or max-width with media queries */
+  border-collapse: collapse;
+}
+
+/* First column wider for text */
 #expenses-table th:first-child,
 #expenses-table td:first-child {
   width: 250px;
 }
 
-/* Ensure the input field fills the column */
-#expenses-table td:first-child input {
+/* Other input columns — keep proportional widths */
+#expenses-table th:nth-child(2),
+#expenses-table td:nth-child(2),
+#expenses-table th:nth-child(3),
+#expenses-table td:nth-child(3),
+#expenses-table th:nth-child(4),
+#expenses-table td:nth-child(4) {
+  width: 150px;
+}
+
+/* Make input fields fill their cells */
+#expenses-table td input,
+#expenses-table td select {
   width: 100%;
   box-sizing: border-box;
 }
