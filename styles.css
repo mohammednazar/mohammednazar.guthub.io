@@ -1,135 +1,97 @@
-/* Expand the full page to fit the table */
+/* Expand full page width */
 body {
-  max-width: 1600px;  /* wider page frame */
   margin: 0 auto;
   padding: 20px;
-}
-
-/* Expand the table container */
-main {
-  overflow-x: visible;
-}
-
-/* Expand the table itself */
-#expenses-table {
-  width: 1600px;         /* adjust to fit your screen */
+  font-family: sans-serif;
   max-width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
+  overflow-x: hidden;
 }
 
-/* Optional: Make each column proportional */
-#expenses-table th:first-child,
-#expenses-table td:first-child {
-  width: 300px;
-}
-
-#expenses-table th:nth-child(2),
-#expenses-table td:nth-child(2) {
-  width: 150px;
-}
-
-#expenses-table th:nth-child(3),
-#expenses-table td:nth-child(3),
-#expenses-table th:nth-child(4),
-#expenses-table td:nth-child(4) {
-  width: 180px;
-}
-
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
-    margin: 0;
-    padding: 0;
-}
-
+/* Adjust header/footer styling */
 header, footer {
-    background-color: #0056b3;
-    color: white;
-    padding: 15px;
-    text-align: center;
+  background-color: #0056b3;
+  color: white;
+  padding: 15px;
+  text-align: center;
 }
 
+/* Main content wider to fit full table */
 main {
-    max-width: 700px;
-    margin: 30px auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    text-align: center;
+  max-width: 100%;
+  margin: 30px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  overflow-x: auto;
 }
 
+/* Buttons styling */
 .button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: 0.3s;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
 .button:hover {
-    background-color: #218838;
+  background-color: #218838;
 }
 
 input[type="file"] {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 footer {
-    font-size: 0.9rem;
-    margin-top: 20px;
+  font-size: 0.9rem;
+  margin-top: 20px;
 }
 
 textarea, input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
 }
 
 #output-list {
-    text-align: left;
-    padding-left: 20px;
+  text-align: left;
+  padding-left: 20px;
 }
 
+/* Table styles */
 table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem; /* smaller font */
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: auto; /* allow columns to size naturally */
 }
 
 th, td {
-    border: 1px solid #ccc;
-    padding: 6px 8px; /* tighter padding */
-    text-align: left;
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  text-align: left;
 }
 
-input[type="number"], select {
-    padding: 4px;
-    font-size: 0.85rem;
-}
-
-textarea, input[type="text"] {
-    font-size: 0.9rem;
+/* Input and select inside table */
+input[type="number"], select,
+input[type="date"], input[type="text"] {
+  width: 100%;
+  padding: 4px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
 }
 
 tfoot td {
-    font-weight: bold;
-    background-color: #f1f1f1;
-}
-
-input[type="date"] {
-    width: 100%;
-    padding: 4px;
-    font-size: 0.85rem;
-    box-sizing: border-box;
+  font-weight: bold;
+  background-color: #f1f1f1;
 }
 
 .home-link {
@@ -155,7 +117,7 @@ button {
 }
 
 .remove-button {
-  background-color: #f44336; /* red */
+  background-color: #f44336;
   color: white;
   border: none;
   padding: 4px 8px;
@@ -166,35 +128,26 @@ button {
   background-color: #d32f2f;
 }
 
-/* Expand table container */
-main {
-  overflow-x: auto; /* allow scroll if needed */
-}
-
-/* Wider full table */
-#expenses-table {
-  table-layout: fixed;
-  width: 1200px; /* Or try 100%, or max-width with media queries */
-  border-collapse: collapse;
-}
-
-/* First column wider for text */
+/* Make first column wider */
 #expenses-table th:first-child,
 #expenses-table td:first-child {
-  width: 250px;
+  min-width: 250px;
 }
 
-/* Other input columns — keep proportional widths */
+/* Optional column guidance (no hard limits) */
 #expenses-table th:nth-child(2),
-#expenses-table td:nth-child(2),
+#expenses-table td:nth-child(2) {
+  min-width: 100px;
+}
+
 #expenses-table th:nth-child(3),
 #expenses-table td:nth-child(3),
 #expenses-table th:nth-child(4),
 #expenses-table td:nth-child(4) {
-  width: 150px;
+  min-width: 140px;
 }
 
-/* Make input fields fill their cells */
+/* Responsive table */
 #expenses-table td input,
 #expenses-table td select {
   width: 100%;
