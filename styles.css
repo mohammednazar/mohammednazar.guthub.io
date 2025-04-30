@@ -1,6 +1,6 @@
 /* Make entire body wider */
 body {
-  max-width: 1400px;  /* or even 1600px depending on your screen */
+  max-width: 1600px;  /* or even 1600px depending on your screen */
   margin: 0 auto;     /* center the content */
   padding: 20px;
 }
