@@ -154,6 +154,31 @@ const firebaseConfig = {
       calculateTotals();
     }
 
+  function exportToExcel() {
+  const rows = document.querySelectorAll('#expenses-table tbody tr');
+  const data = [];
+
+  // Header row
+  data.push(['Expense Type', 'Amount', 'Paid', 'Due Date']);
+
+  // Collect all row data
+  rows.forEach(row => {
+    const name = row.cells[0].querySelector('input')?.value || '';
+    const amount = row.cells[1].querySelector('input')?.value || '';
+    const paid = row.cells[2].querySelector('select')?.value || '';
+    const dueDate = row.cells[3].querySelector('input')?.value || '';
+    data.push([name, amount, paid, dueDate]);
+  });
+
+  // Create worksheet & workbook
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+
+  // Export to file
+  XLSX.writeFile(workbook, 'Monthly_Expenses.xlsx');
+}
+
     function calculateTotals() {
       let total = 0, paid = 0, unpaid = 0;
       const today = new Date(), soon = new Date();
