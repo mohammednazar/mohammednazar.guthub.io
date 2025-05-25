@@ -154,21 +154,22 @@ const firebaseConfig = {
       calculateTotals();
     }
 
+  <!-- Export Button script -->
   function exportToExcel() {
-  const rows = document.querySelectorAll('#expenses-table tbody tr');
-  const data = [];
-
-  // Header row
-  data.push(['Expense Type', 'Amount', 'Paid', 'Due Date']);
-
-  // Collect all row data
-  rows.forEach(row => {
-    const name = row.cells[0].querySelector('input')?.value || '';
-    const amount = row.cells[1].querySelector('input')?.value || '';
-    const paid = row.cells[2].querySelector('select')?.value || '';
-    const dueDate = row.cells[3].querySelector('input')?.value || '';
-    data.push([name, amount, paid, dueDate]);
-  });
+    const rows = document.querySelectorAll('#expenses-table tbody tr');
+    const data = [];
+  
+    // Header row
+    data.push(['Expense Type', 'Amount', 'Paid', 'Due Date']);
+  
+    // Collect all row data
+    rows.forEach(row => {
+      const name = row.cells[0].querySelector('input')?.value || '';
+      const amount = row.cells[1].querySelector('input')?.value || '';
+      const paid = row.cells[2].querySelector('select')?.value || '';
+      const dueDate = row.cells[3].querySelector('input')?.value || '';
+      data.push([name, amount, paid, dueDate]);
+    });
 
   // Create worksheet & workbook
   const worksheet = XLSX.utils.aoa_to_sheet(data);
@@ -241,6 +242,7 @@ const firebaseConfig = {
       <input type="password" id="password" placeholder="Password">
       <button onclick="signUp()">Sign Up</button>
       <button onclick="signIn()">Sign In</button>
+        <!-- Export Button script -->
       <button class="button" onclick="exportToExcel()">Export to Excel</button>
     </div>
     <div id="auth-status"></div>
