@@ -180,7 +180,7 @@ const firebaseConfig = {
   const now = new Date();
   const month = now.toLocaleString('default', { month: 'short' });
   const year = now.getFullYear();
-  const fileName = `${month}_${year}.xlsx`;
+  const fileName = `${month}_${year}_expense.xlsx`;
 
   XLSX.writeFile(workbook, fileName);
 
