@@ -155,29 +155,40 @@ const firebaseConfig = {
     }
 
   <!-- Export Button script -->
-  function exportToExcel() {
-    const rows = document.querySelectorAll('#expenses-table tbody tr');
-    const data = [];
-  
-    // Header row
-    data.push(['Expense Type', 'Amount', 'Paid', 'Due Date']);
-  
-    // Collect all row data
-    rows.forEach(row => {
-      const name = row.cells[0].querySelector('input')?.value || '';
-      const amount = row.cells[1].querySelector('input')?.value || '';
-      const paid = row.cells[2].querySelector('select')?.value || '';
-      const dueDate = row.cells[3].querySelector('input')?.value || '';
-      data.push([name, amount, paid, dueDate]);
-    });
+ function exportToExcel() {
+  const rows = document.querySelectorAll('#expenses-table tbody tr');
+  const data = [];
 
-  // Create worksheet & workbook
+  // Header row
+  data.push(['Expense Type', 'Amount', 'Paid', 'Due Date']);
+
+  // Collect and export current row data
+  rows.forEach(row => {
+    const name = row.cells[0].querySelector('input')?.value || '';
+    const amount = row.cells[1].querySelector('input')?.value || '';
+    const paid = row.cells[2].querySelector('select')?.value || '';
+    const dueDate = row.cells[3].querySelector('input')?.value || '';
+    data.push([name, amount, paid, dueDate]);
+  });
+
+  // Create Excel workbook
   const worksheet = XLSX.utils.aoa_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
-
-  // Export to file
   XLSX.writeFile(workbook, 'Monthly_Expenses.xlsx');
+
+  // 🔄 After export: reset all except Expense Type
+  rows.forEach(row => {
+    row.cells[1].querySelector('input').value = '';
+    row.cells[2].querySelector('select').value = 'no';
+    row.cells[3].querySelector('input').value = '';
+    
+    // Optional: update Firestore if needed
+    const docId = row.getAttribute('data-id');
+    saveRowToFirestore(row, docId);
+  });
+
+  calculateTotals();
 }
 
     function calculateTotals() {
