@@ -175,20 +175,28 @@ const firebaseConfig = {
   const worksheet = XLSX.utils.aoa_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
-  XLSX.writeFile(workbook, 'Monthly_Expenses.xlsx');
 
-  // ✅ After export: clear values
-  rows.forEach(row => {
-    row.cells[1].querySelector('input').value = ''; // clear amount
-    row.cells[2].querySelector('select').value = 'no'; // set to No
-    row.cells[3].querySelector('input').value = ''; // clear due date
+  // Format file name as mmm_yyyy.xlsx
+  const now = new Date();
+  const month = now.toLocaleString('default', { month: 'short' });
+  const year = now.getFullYear();
+  const fileName = `${month}_${year}.xlsx`;
 
-    const docId = row.getAttribute('data-id');
-    saveRowToFirestore(row, docId); // save cleared data
-  });
+  XLSX.writeFile(workbook, fileName);
 
-  calculateTotals(); // update summary row
+  // Clear values after export
+  setTimeout(() => {
+    rows.forEach(row => {
+      row.cells[1].querySelector('input').value = '';
+      row.cells[2].querySelector('select').value = 'no';
+      row.cells[3].querySelector('input').value = '';
+      const docId = row.getAttribute('data-id');
+      saveRowToFirestore(row, docId);
+    });
+    calculateTotals();
+  }, 300);
 }
+
 
       <!-- Import Button script -->
 
