@@ -190,6 +190,56 @@ const firebaseConfig = {
   calculateTotals(); // update summary row
 }
 
+      <!-- Import Button script -->
+
+function importFromExcel() {
+  const fileInput = document.getElementById('excel-file');
+  const file = fileInput.files[0];
+  if (!file) {
+    alert("Please select an Excel file first.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    // Expecting format: ['Expense Type', 'Amount', 'Paid', 'Due Date']
+    rows.shift(); // remove header
+
+    rows.forEach(([name, amount, paid, dueDate]) => {
+      const tableRows = document.querySelectorAll('#expenses-table tbody tr');
+      let matchedRow = null;
+
+      tableRows.forEach(row => {
+        const input = row.cells[0].querySelector('input');
+        if (input && input.value.trim().toLowerCase() === name.trim().toLowerCase()) {
+          matchedRow = row;
+        }
+      });
+
+      if (matchedRow) {
+        matchedRow.cells[1].querySelector('input').value = amount || '';
+        matchedRow.cells[2].querySelector('select').value = paid?.toLowerCase() === 'yes' ? 'yes' : 'no';
+        matchedRow.cells[3].querySelector('input').value = dueDate || '';
+
+        const docId = matchedRow.getAttribute('data-id');
+        saveRowToFirestore(matchedRow, docId);
+      } else {
+        // Add as a new row if no match
+        addExpense(name || '', amount || '', paid?.toLowerCase() === 'yes' ? 'yes' : 'no', dueDate || '');
+      }
+    });
+
+    calculateTotals();
+    alert("Imported successfully.");
+  };
+
+  reader.readAsArrayBuffer(file);
+}
 
     function calculateTotals() {
       let total = 0, paid = 0, unpaid = 0;
@@ -216,6 +266,7 @@ const firebaseConfig = {
       document.getElementById('total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
     }
 
+    
     function setupDragAndDrop() {
       let draggedRow;
       document.querySelectorAll('#expenses-table tbody tr').forEach(row => {
@@ -255,6 +306,10 @@ const firebaseConfig = {
       <button onclick="signIn()">Sign In</button>
         <!-- Export Button script -->
       <button class="button" onclick="exportToExcel()">Export to Excel</button>
+        <!-- Import Button script -->
+      <input type="file" id="excel-file" accept=".xlsx, .xls" />
+      <button class="button" onclick="importFromExcel()">Import from Excel</button>
+
     </div>
     <div id="auth-status"></div>
   </header>
