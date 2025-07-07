@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Extract &lt;...&gt; Values</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    textarea { width: 100%; height: 100px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<h2>Extract Text Inside &lt;...&gt;</h2>
+
+<textarea id="inputText" placeholder="Enter text with <values>..."></textarea><br><br>
+<button onclick="extractValues()">Extract</button>
+
+<h3>Extracted Values:</h3>
+<pre id="output"></pre>
+
+<script>
+  function extractValues() {
+    const input = document.getElementById('inputText').value;
+    const regex = /<([^>]+)>/g;
+    let match;
+    let results = [];
+
+    while ((match = regex.exec(input)) !== null) {
+      results.push(match[1]);
+    }
+
+    document.getElementById('output').textContent = results.length 
+      ? results.join('\n') 
+      : 'No values found.';
+  }
+</script>
+
+</body>
+</html>
