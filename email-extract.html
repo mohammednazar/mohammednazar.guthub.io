@@ -2,27 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Extract &lt;...&gt; Values</title>
+  <title>Extract Between Delimiters</title>
   <style>
     body { font-family: Arial; padding: 20px; }
-    textarea { width: 100%; height: 100px; }
+    textarea, input { width: 100%; margin-bottom: 10px; }
     pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
   </style>
 </head>
 <body>
 
-<h2>Extract Text Inside &lt;...&gt;</h2>
+<h2>Extract Text Between Delimiters</h2>
 
-<textarea id="inputText" placeholder="Enter text with <values>..."></textarea><br><br>
+<label>Start Delimiter:</label>
+<input type="text" id="startDelimiter" value="<">
+
+<label>End Delimiter:</label>
+<input type="text" id="endDelimiter" value=">">
+
+<label>Input Text:</label>
+<textarea id="inputText" placeholder="Example: This is a <test> and another <sample>."></textarea>
+
 <button onclick="extractValues()">Extract</button>
 
 <h3>Extracted Values:</h3>
 <pre id="output"></pre>
 
 <script>
+  function escapeRegex(text) {
+    return text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  }
+
   function extractValues() {
     const input = document.getElementById('inputText').value;
-    const regex = /<([^>]+)>/g;
+    const start = document.getElementById('startDelimiter').value;
+    const end = document.getElementById('endDelimiter').value;
+    const output = document.getElementById('output');
+
+    if (!start || !end) {
+      output.textContent = "Please enter both start and end delimiters.";
+      return;
+    }
+
+    const regex = new RegExp(escapeRegex(start) + "(.*?)" + escapeRegex(end), "g");
     let match;
     let results = [];
 
@@ -30,9 +51,7 @@
       results.push(match[1]);
     }
 
-    document.getElementById('output').textContent = results.length 
-      ? results.join('\n') 
-      : 'No values found.';
+    output.textContent = results.length ? results.join('\n') : "No values found.";
   }
 </script>
 
