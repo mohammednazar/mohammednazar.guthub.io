@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Extract Between Delimiters</title>
+  <title>Extract & Merge Strings Between Delimiters</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
+    body { font-family: Arial, padding: 20px; }
     textarea, input { width: 100%; margin-bottom: 10px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    label { font-weight: bold; }
+    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; border-radius: 5px; }
   </style>
 </head>
 <body>
@@ -20,11 +21,18 @@
 <input type="text" id="endDelimiter" value=">">
 
 <label>Input Text:</label>
-<textarea id="inputText" placeholder="Example: This is a <test> and another <sample>."></textarea>
+<textarea id="inputText" rows="5" placeholder="Example: This is a <test> and another <sample>."></textarea>
+
+<input type="checkbox" id="enableMerge" onchange="toggleMerge()"> Merge extracted strings
+<br><br>
+<div id="mergeOptions" style="display: none;">
+  <label>Merge Delimiter (e.g., comma, space):</label>
+  <input type="text" id="mergeDelimiter" value=", ">
+</div>
 
 <button onclick="extractValues()">Extract</button>
 
-<h3>Extracted Values:</h3>
+<h3>Output:</h3>
 <pre id="output"></pre>
 
 <script>
@@ -32,10 +40,17 @@
     return text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
   }
 
+  function toggleMerge() {
+    document.getElementById("mergeOptions").style.display =
+      document.getElementById("enableMerge").checked ? "block" : "none";
+  }
+
   function extractValues() {
     const input = document.getElementById('inputText').value;
     const start = document.getElementById('startDelimiter').value;
     const end = document.getElementById('endDelimiter').value;
+    const enableMerge = document.getElementById('enableMerge').checked;
+    const mergeDelimiter = document.getElementById('mergeDelimiter').value;
     const output = document.getElementById('output');
 
     if (!start || !end) {
@@ -51,7 +66,13 @@
       results.push(match[1]);
     }
 
-    output.textContent = results.length ? results.join('\n') : "No values found.";
+    if (results.length === 0) {
+      output.textContent = "No values found.";
+    } else {
+      output.textContent = enableMerge
+        ? results.join(mergeDelimiter)
+        : results.join('\n');
+    }
   }
 </script>
 
