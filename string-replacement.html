@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One-to-Many Replacer</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    textarea, input { width: 100%; margin-bottom: 10px; padding: 8px; font-size: 14px; }
+    button { padding: 10px 20px; font-size: 14px; }
+    #output { background: #f4f4f4; padding: 10px; min-height: 50px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+  <h2>One-to-Many Replacer & Concatenator</h2>
+
+  <label>Input String:</label>
+  <textarea id="inputString" rows="3" placeholder="Enter your base text..."></textarea>
+
+  <label>Old Value to Replace:</label>
+  <input type="text" id="oldValue" placeholder="e.g., CITY">
+
+  <label>New Values (one per line):</label>
+  <textarea id="newValues" rows="6" placeholder="e.g. Toronto&#10;New York&#10;Vancouver"></textarea>
+
+  <button onclick="replaceAndConcat()">Replace and Concatenate</button>
+
+  <h3>Result:</h3>
+  <div id="output"></div>
+
+  <script>
+    function replaceAndConcat() {
+      const input = document.getElementById("inputString").value.trim();
+      const oldVal = document.getElementById("oldValue").value.trim();
+      const newVals = document.getElementById("newValues").value.trim().split('\n').filter(Boolean);
+
+      if (!input || !oldVal || newVals.length === 0) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      const results = newVals.map(newVal => input.replaceAll(oldVal, newVal.trim()));
+      document.getElementById("output").textContent = results.join(" + ");
+    }
+  </script>
+
+</body>
+</html>
