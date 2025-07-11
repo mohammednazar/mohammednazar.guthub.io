@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Excel FILTER + VSTACK Formula Builder</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    input, textarea, select { width: 100%; padding: 8px; margin-bottom: 10px; }
+    button { padding: 10px 20px; font-size: 14px; margin-top: 10px; }
+    #output { background: #f4f4f4; padding: 10px; white-space: pre-wrap; min-height: 40px; }
+    label { font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h2>🧮 Excel FILTER + VSTACK Formula Builder</h2>
+
+  <label>📌 Data Array (e.g., <code>'Sheet1'!A:Z</code>):</label>
+  <input type="text" id="dataArray" placeholder="'Sheet1'!A:Z">
+
+  <label>🔍 Column to Filter On (e.g., <code>C</code>):</label>
+  <input type="text" id="searchColumn" placeholder="C">
+
+  <label>🔍 Values to Match (one per line):</label>
+  <textarea id="searchValues" rows="5" placeholder="Approved&#10;Pending"></textarea>
+
+  <label>📋 Header Row Number (defaults to 1):</label>
+  <input type="number" id="headerRow" placeholder="1" min="1" value="1">
+
+  <button onclick="generateFilter()">Generate Formula</button>
+  <button onclick="copyFormula()">Copy Formula</button>
+
+  <h3>✅ Resulting Formula:</h3>
+  <div id="output"></div>
+
+  <script>
+    function generateFilter() {
+      const dataArray = document.getElementById("dataArray").value.trim();
+      const searchColumn = document.getElementById("searchColumn").value.trim().toUpperCase();
+      const values = document.getElementById("searchValues").value.trim().split('\n').filter(Boolean);
+      const headerRow = parseInt(document.getElementById("headerRow").value.trim()) || 1;
+
+      if (!dataArray || !searchColumn || values.length === 0) {
+        alert("Please fill in all the fields.");
+        return;
+      }
+
+      const sheetName = dataArray.split('!')[0];
+      const conditionParts = values.map(val =>
+        `(${sheetName}!${searchColumn}:${searchColumn}="${val.trim()}")`
+      );
+      const conditionString = conditionParts.join(" + ");
+      const headerRange = `${sheetName}!${searchColumn}${headerRow}`;
+      const fullRange = dataArray;
+
+      const formula = `=VSTACK(${sheetName}!${headerRow}:${headerRow}, FILTER(${fullRange}, ${conditionString}))`;
+      document.getElementById("output").textContent = formula;
+    }
+
+    function copyFormula() {
+      const output = document.getElementById("output").textContent;
+      navigator.clipboard.writeText(output).then(() => {
+        alert("✅ Formula copied to clipboard!");
+      }, () => {
+        alert("❌ Failed to copy.");
+      });
+    }
+  </script>
+
+</body>
+</html>
