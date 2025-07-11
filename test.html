@@ -57,6 +57,42 @@
       document.getElementById("output").textContent = formula;
     }
 
+    function generateFilter() {
+  const dataArray = document.getElementById("dataArray").value.trim(); // e.g. 'Sheet1'!A2:Z100
+  const searchColumn = document.getElementById("searchColumn").value.trim().toUpperCase();
+  const values = document.getElementById("searchValues").value.trim().split('\n').filter(Boolean);
+  const headerRow = parseInt(document.getElementById("headerRow").value.trim()) || 1;
+
+  if (!dataArray || !searchColumn || values.length === 0) {
+    alert("Please fill in all the fields.");
+    return;
+  }
+
+  const sheetMatch = dataArray.match(/^'?([^']+)'?!([A-Z]+\d*:[A-Z]+\d*)$/);
+  if (!sheetMatch) {
+    alert("Invalid data array format. Use format like 'Sheet1'!A2:Z100");
+    return;
+  }
+
+  const sheetName = `'${sheetMatch[1]}'`;
+  const range = sheetMatch[2]; // e.g. A2:Z100
+  const rowMatch = range.match(/\D+(\d+):\D+(\d+)/);
+  const startRow = rowMatch ? rowMatch[1] : "2";
+  const endRow = rowMatch ? rowMatch[2] : "";
+
+  const filterRange = `${sheetName}!${searchColumn}${startRow}:${searchColumn}${endRow}`;
+
+  const conditionParts = values.map(val =>
+    `(${filterRange}="${val.trim()}")`
+  );
+  const conditionString = conditionParts.join(" + ");
+
+  const headerRef = `${sheetName}!${headerRow}:${headerRow}`;
+  const formula = `=VSTACK(${headerRef}, FILTER(${sheetName}!${range}, ${conditionString}))`;
+
+  document.getElementById("output").textContent = formula;
+}
+
     function copyFormula() {
       const output = document.getElementById("output").textContent;
       navigator.clipboard.writeText(output).then(() => {
