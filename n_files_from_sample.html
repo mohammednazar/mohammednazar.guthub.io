@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Duplicate File Generator</title>
+</head>
+<body>
+  <h2>Duplicate File Generator</h2>
+
+  <label>Select file to duplicate:</label><br>
+  <input type="file" id="fileInput"><br><br>
+
+  <label>Number of copies:</label><br>
+  <input type="number" id="copyCount" min="1" value="5"><br><br>
+
+  <button onclick="duplicateFiles()">Create Files</button>
+  <p id="status"></p>
+
+  <script>
+    async function duplicateFiles() {
+      const fileInput = document.getElementById("fileInput");
+      const copyCount = parseInt(document.getElementById("copyCount").value);
+      const status = document.getElementById("status");
+      status.textContent = "";
+
+      if (!fileInput.files.length || !copyCount || copyCount <= 0) {
+        status.textContent = "Please select a file and enter a valid number of copies.";
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const fileName = file.name;
+      const [baseName, ext] = fileName.split(/(.+)\.(.+)/).filter(Boolean);
+
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+
+        for (let i = 1; i <= copyCount; i++) {
+          const newFileName = `${baseName}_copy${i}.${ext}`;
+          const fileHandle = await dirHandle.getFileHandle(newFileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(await file.arrayBuffer());
+          await writable.close();
+        }
+
+        status.textContent = `✅ ${copyCount} files created successfully in selected folder.`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
