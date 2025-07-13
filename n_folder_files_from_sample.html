@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Duplicate Files into Subfolders</title>
+</head>
+<body>
+  <h2>Organized File Duplicator</h2>
+
+  <label>Select folder of files:</label><br>
+  <input type="file" id="folderInput" webkitdirectory directory multiple><br><br>
+
+  <label>Number of duplicates per file:</label><br>
+  <input type="number" id="copyCount" min="1" value="3"><br><br>
+
+  <button onclick="createFoldersWithCopies()">Create Subfolders with Copies</button>
+  <p id="status"></p>
+
+  <script>
+    async function createFoldersWithCopies() {
+      const folderInput = document.getElementById("folderInput");
+      const copyCount = parseInt(document.getElementById("copyCount").value);
+      const status = document.getElementById("status");
+      status.textContent = "";
+
+      if (!folderInput.files.length || copyCount <= 0) {
+        status.textContent = "Please select a folder and enter a valid number of copies.";
+        return;
+      }
+
+      try {
+        const outputDir = await window.showDirectoryPicker();
+        const files = Array.from(folderInput.files);
+
+        for (const file of files) {
+          const fileName = file.name;
+          const baseName = fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
+          const ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+          const folderHandle = await outputDir.getDirectoryHandle(baseName, { create: true });
+
+          for (let i = 1; i <= copyCount; i++) {
+            const newFileName = `${baseName}_copy${i}.${ext}`;
+            const fileHandle = await folderHandle.getFileHandle(newFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(await file.arrayBuffer());
+            await writable.close();
+          }
+        }
+
+        status.textContent = `✅ Created ${copyCount} copies for each file in their own folders.`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
