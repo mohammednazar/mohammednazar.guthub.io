@@ -6,8 +6,8 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; }
     input, textarea, select { width: 100%; padding: 8px; margin-bottom: 10px; }
-    button { padding: 10px 20px; font-size: 14px; margin-top: 10px; }
-    #output { background: #f4f4f4; padding: 10px; white-space: pre-wrap; min-height: 40px; }
+    button { padding: 10px 20px; font-size: 14px; margin-top: 10px; margin-right: 10px; }
+    .output-box { background: #f4f4f4; padding: 10px; white-space: pre-wrap; min-height: 40px; margin-bottom: 10px; }
     label { font-weight: bold; }
   </style>
 </head>
@@ -15,8 +15,8 @@
 
   <h2>🧮 Excel FILTER + VSTACK Formula Builder</h2>
 
-  <label>📌 Data Array (e.g., <code>'Sheet1'!A:Z</code>):</label>
-  <input type="text" id="dataArray" placeholder="'Sheet1'!A:Z">
+  <label>📌 Data Array (e.g., <code>'Sheet1'!A2:Z100</code>):</label>
+  <input type="text" id="dataArray" placeholder="'Sheet1'!A2:Z100">
 
   <label>🔍 Column to Filter On (e.g., <code>C</code>):</label>
   <input type="text" id="searchColumn" placeholder="C">
@@ -27,14 +27,18 @@
   <label>📋 Header Row Number (defaults to 1):</label>
   <input type="number" id="headerRow" placeholder="1" min="1" value="1">
 
-  <button onclick="generateFilter()">Generate Formula</button>
-  <button onclick="copyFormula()">Copy Formula</button>
+  <button onclick="generateFormulas()">Generate Formulas</button>
 
-  <h3>✅ Resulting Formula:</h3>
-  <div id="output"></div>
+  <h3>✅ VSTACK Formula:</h3>
+  <div class="output-box" id="vstackOutput"></div>
+  <button onclick="copyToClipboard('vstackOutput')">📋 Copy VSTACK</button>
+
+  <h3>✅ FILTER Formula:</h3>
+  <div class="output-box" id="filterOutput"></div>
+  <button onclick="copyToClipboard('filterOutput')">📋 Copy FILTER</button>
 
   <script>
-    function generateFilter() {
+    function generateFormulas() {
       const dataArray = document.getElementById("dataArray").value.trim();
       const searchColumn = document.getElementById("searchColumn").value.trim().toUpperCase();
       const values = document.getElementById("searchValues").value.trim().split('\n').filter(Boolean);
@@ -45,57 +49,33 @@
         return;
       }
 
-      const sheetName = dataArray.split('!')[0];
-      const conditionParts = values.map(val =>
-        `(${sheetName}!${searchColumn}:${searchColumn}="${val.trim()}")`
-      );
-      const conditionString = conditionParts.join(" + ");
-      const headerRange = `${sheetName}!${searchColumn}${headerRow}`;
-      const fullRange = dataArray;
+      const sheetMatch = dataArray.match(/^'?([^']+)'?!([A-Z]+\d*:[A-Z]+\d*)$/);
+      if (!sheetMatch) {
+        alert("Invalid data array format. Use format like 'Sheet1'!A2:Z100");
+        return;
+      }
 
-      const formula = `=VSTACK(${sheetName}!${headerRow}:${headerRow}, FILTER(${fullRange}, ${conditionString}))`;
-      document.getElementById("output").textContent = formula;
+      const sheetName = `'${sheetMatch[1]}'`;
+      const range = sheetMatch[2];
+      const rowMatch = range.match(/\D+(\d+):\D+(\d+)/);
+      const startRow = rowMatch ? rowMatch[1] : "2";
+      const endRow = rowMatch ? rowMatch[2] : "";
+
+      const filterRange = `${sheetName}!${searchColumn}${startRow}:${searchColumn}${endRow}`;
+      const conditionParts = values.map(val => `(${filterRange}="${val.trim()}")`);
+      const conditionString = conditionParts.join(" + ");
+
+      const headerRef = `${sheetName}!${headerRow}:${headerRow}`;
+      const vstackFormula = `=VSTACK(${headerRef}, FILTER(${sheetName}!${range}, ${conditionString}))`;
+      const filterFormula = `=FILTER(${sheetName}!${range}, ${conditionString})`;
+
+      document.getElementById("vstackOutput").textContent = vstackFormula;
+      document.getElementById("filterOutput").textContent = filterFormula;
     }
 
-    function generateFilter() {
-  const dataArray = document.getElementById("dataArray").value.trim(); // e.g. 'Sheet1'!A2:Z100
-  const searchColumn = document.getElementById("searchColumn").value.trim().toUpperCase();
-  const values = document.getElementById("searchValues").value.trim().split('\n').filter(Boolean);
-  const headerRow = parseInt(document.getElementById("headerRow").value.trim()) || 1;
-
-  if (!dataArray || !searchColumn || values.length === 0) {
-    alert("Please fill in all the fields.");
-    return;
-  }
-
-  const sheetMatch = dataArray.match(/^'?([^']+)'?!([A-Z]+\d*:[A-Z]+\d*)$/);
-  if (!sheetMatch) {
-    alert("Invalid data array format. Use format like 'Sheet1'!A2:Z100");
-    return;
-  }
-
-  const sheetName = `'${sheetMatch[1]}'`;
-  const range = sheetMatch[2]; // e.g. A2:Z100
-  const rowMatch = range.match(/\D+(\d+):\D+(\d+)/);
-  const startRow = rowMatch ? rowMatch[1] : "2";
-  const endRow = rowMatch ? rowMatch[2] : "";
-
-  const filterRange = `${sheetName}!${searchColumn}${startRow}:${searchColumn}${endRow}`;
-
-  const conditionParts = values.map(val =>
-    `(${filterRange}="${val.trim()}")`
-  );
-  const conditionString = conditionParts.join(" + ");
-
-  const headerRef = `${sheetName}!${headerRow}:${headerRow}`;
-  const formula = `=VSTACK(${headerRef}, FILTER(${sheetName}!${range}, ${conditionString}))`;
-
-  document.getElementById("output").textContent = formula;
-}
-
-    function copyFormula() {
-      const output = document.getElementById("output").textContent;
-      navigator.clipboard.writeText(output).then(() => {
+    function copyToClipboard(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(() => {
         alert("✅ Formula copied to clipboard!");
       }, () => {
         alert("❌ Failed to copy.");
