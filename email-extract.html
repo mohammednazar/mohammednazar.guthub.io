@@ -9,8 +9,14 @@
     label { font-weight: bold; display:block; margin-top: 8px; }
     .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
     .chip { background:#f4f4f4; padding:6px 10px; border-radius:14px; }
-    .copy-btn { padding:4px 8px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#fff; }
-    .copy-btn:active { transform: scale(0.98); }
+    .copy-icon {
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      fill: #666;
+      transition: fill 0.2s ease;
+    }
+    .copy-icon:hover { fill: #000; }
     #outputContainer { margin-top: 8px; }
     .hint { color:#666; font-size: 12px; margin-top: 4px; }
   </style>
@@ -45,9 +51,13 @@
   <div id="message" class="hint">Nothing extracted yet.</div>
   <div id="outputList"></div>
   <div id="mergedBlock" style="display:none;">
-    <div class="row">
+    <div class="row" style="align-items: flex-start;">
       <div id="mergedText" class="chip" style="flex:1; overflow:auto; white-space:pre-wrap;"></div>
-      <button class="copy-btn" id="copyMergedBtn" onclick="copyText(document.getElementById('mergedText').innerText, this)">Copy</button>
+      <svg class="copy-icon" id="copyMergedBtn" onclick="copyText(document.getElementById('mergedText').innerText, this)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 
+                 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 
+                 16H8V7h11v14z"/>
+      </svg>
     </div>
   </div>
 </div>
@@ -62,12 +72,12 @@
       document.getElementById("enableMerge").checked ? "block" : "none";
   }
 
-  async function copyText(text, btn) {
+  async function copyText(text, icon) {
     try {
       await navigator.clipboard.writeText(text);
-      const original = btn.textContent;
-      btn.textContent = "Copied!";
-      setTimeout(() => (btn.textContent = original), 900);
+      const originalColor = icon.style.fill;
+      icon.style.fill = "green";
+      setTimeout(() => (icon.style.fill = ""), 900);
     } catch (e) {
       alert("Copy failed. Select and copy manually.");
     }
@@ -119,7 +129,6 @@
       mergedText.innerText = results.join(mergeDelimiter);
       mergedBlock.style.display = 'block';
     } else {
-      // Render each result with a small copy button
       results.forEach(val => {
         const row = document.createElement('div');
         row.className = 'row';
@@ -128,13 +137,18 @@
         chip.className = 'chip';
         chip.textContent = val;
 
-        const btn = document.createElement('button');
-        btn.className = 'copy-btn';
-        btn.textContent = 'Copy';
-        btn.addEventListener('click', () => copyText(val, btn));
+        const svgNS = "http://www.w3.org/2000/svg";
+        const icon = document.createElementNS(svgNS, "svg");
+        icon.setAttribute("class", "copy-icon");
+        icon.setAttribute("viewBox", "0 0 24 24");
+        icon.innerHTML = `<path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 
+                           0-2 .9-2 2v14c0 1.1.9 2 2 
+                           2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 
+                           16H8V7h11v14z"/>`;
+        icon.addEventListener('click', () => copyText(val, icon));
 
         row.appendChild(chip);
-        row.appendChild(btn);
+        row.appendChild(icon);
         listEl.appendChild(row);
       });
     }
