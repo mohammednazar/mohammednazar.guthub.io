@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <title>Extract & Merge Strings Between Delimiters</title>
   <style>
-    body { font-family: Arial, padding: 20px; }
-    textarea, input { width: 100%; margin-bottom: 10px; }
-    label { font-weight: bold; }
-    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; border-radius: 5px; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea, input { width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+    label { font-weight: bold; display:block; margin-top: 8px; }
+    .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .chip { background:#f4f4f4; padding:6px 10px; border-radius:14px; }
+    .copy-btn { padding:4px 8px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#fff; }
+    .copy-btn:active { transform: scale(0.98); }
+    #outputContainer { margin-top: 8px; }
+    .hint { color:#666; font-size: 12px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -21,10 +26,13 @@
 <input type="text" id="endDelimiter" value=">">
 
 <label>Input Text:</label>
-<textarea id="inputText" rows="5" placeholder="Example: This is a <test> and another <sample>."></textarea>
+<textarea id="inputText" rows="5" placeholder="Example: Contact &lt;jane@example.com&gt; and &lt;sam@domain.io&gt;."></textarea>
 
-<input type="checkbox" id="enableMerge" onchange="toggleMerge()"> Merge extracted strings
-<br><br>
+<div class="row" style="margin-top:6px;">
+  <input type="checkbox" id="enableMerge" onchange="toggleMerge()">
+  <label for="enableMerge" style="margin:0; font-weight:normal;">Merge extracted strings</label>
+</div>
+
 <div id="mergeOptions" style="display: none;">
   <label>Merge Delimiter (e.g., comma, space):</label>
   <input type="text" id="mergeDelimiter" value=", ">
@@ -33,7 +41,16 @@
 <button onclick="extractValues()">Extract</button>
 
 <h3>Output:</h3>
-<pre id="output"></pre>
+<div id="outputContainer">
+  <div id="message" class="hint">Nothing extracted yet.</div>
+  <div id="outputList"></div>
+  <div id="mergedBlock" style="display:none;">
+    <div class="row">
+      <div id="mergedText" class="chip" style="flex:1; overflow:auto; white-space:pre-wrap;"></div>
+      <button class="copy-btn" id="copyMergedBtn" onclick="copyText(document.getElementById('mergedText').innerText, this)">Copy</button>
+    </div>
+  </div>
+</div>
 
 <script>
   function escapeRegex(text) {
@@ -45,33 +62,81 @@
       document.getElementById("enableMerge").checked ? "block" : "none";
   }
 
+  async function copyText(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = original), 900);
+    } catch (e) {
+      alert("Copy failed. Select and copy manually.");
+    }
+  }
+
+  function clearOutput() {
+    document.getElementById('outputList').innerHTML = '';
+    document.getElementById('mergedText').innerText = '';
+    document.getElementById('mergedBlock').style.display = 'none';
+    document.getElementById('message').style.display = 'none';
+  }
+
   function extractValues() {
     const input = document.getElementById('inputText').value;
     const start = document.getElementById('startDelimiter').value;
     const end = document.getElementById('endDelimiter').value;
     const enableMerge = document.getElementById('enableMerge').checked;
     const mergeDelimiter = document.getElementById('mergeDelimiter').value;
-    const output = document.getElementById('output');
+
+    const listEl = document.getElementById('outputList');
+    const mergedBlock = document.getElementById('mergedBlock');
+    const mergedText = document.getElementById('mergedText');
+    const message = document.getElementById('message');
+
+    clearOutput();
 
     if (!start || !end) {
-      output.textContent = "Please enter both start and end delimiters.";
+      message.style.display = 'block';
+      message.textContent = "Please enter both start and end delimiters.";
       return;
     }
 
     const regex = new RegExp(escapeRegex(start) + "(.*?)" + escapeRegex(end), "g");
     let match;
-    let results = [];
+    const results = [];
 
     while ((match = regex.exec(input)) !== null) {
-      results.push(match[1]);
+      const val = (match[1] || '').trim();
+      if (val) results.push(val);
     }
 
     if (results.length === 0) {
-      output.textContent = "No values found.";
+      message.style.display = 'block';
+      message.textContent = "No values found.";
+      return;
+    }
+
+    if (enableMerge) {
+      mergedText.innerText = results.join(mergeDelimiter);
+      mergedBlock.style.display = 'block';
     } else {
-      output.textContent = enableMerge
-        ? results.join(mergeDelimiter)
-        : results.join('\n');
+      // Render each result with a small copy button
+      results.forEach(val => {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = val;
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', () => copyText(val, btn));
+
+        row.appendChild(chip);
+        row.appendChild(btn);
+        listEl.appendChild(row);
+      });
     }
   }
 </script>
