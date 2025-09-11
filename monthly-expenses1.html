@@ -14,11 +14,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
   <style>
-    /* tiny, optional helpers if your styles.css doesn’t cover these */
     .row-actions { display: flex; gap: .25rem; }
     .row-actions button { padding: 2px 6px; }
     #range-tools { display: flex; align-items: center; gap: .5rem; margin: 12px 0; flex-wrap: wrap; }
-    #range-tools input { width: 90px; }
+    #range-tools input { width: 280px; }
     #range-total { font-weight: 600; }
     td.sn { text-align: center; width: 64px; }
     th.sn { width: 64px; }
@@ -39,7 +38,6 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // --- Defaults ---
     const DEFAULT_EXPENSES = [
       'Alectra','Enbridge','Water','Property Tax','CIBC CC','MBNA CC',
       'Tangerine CC','CT CC','CIBC Rida','CIBC LOC','Tangerine LOC',
@@ -64,7 +62,6 @@
       }
     });
 
-    // --- Auth helpers ---
     function signUp() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
@@ -78,17 +75,11 @@
       auth.signInWithEmailAndPassword(email, password)
         .catch(err => alert('Error signing in: ' + err.message));
     }
-    function signOut() {
-      auth.signOut();
-    }
+    function signOut() { auth.signOut(); }
 
-    // --- DOM helpers ---
-    function qs(sel, root = document) { return root.querySelector(sel); }
-    function qsa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
-
-    // --- Row creation ---
+    // --- Add row ---
     function addExpense(name = '', amount = '', paid = 'no', dueDate = '', docId = '') {
-      const tbody = qs('#expenses-table tbody');
+      const tbody = document.querySelector('#expenses-table tbody');
       const row = document.createElement('tr');
       row.setAttribute('data-id', docId || Date.now().toString());
 
@@ -104,8 +95,8 @@
         </td>
         <td><input type="date" value="${dueDate}"></td>
         <td class="row-actions">
-          <button type="button" title="Move Up" onclick="moveRow(this, -1)">↑</button>
-          <button type="button" title="Move Down" onclick="moveRow(this, 1)">↓</button>
+          <button type="button" onclick="moveRow(this, -1)">↑</button>
+          <button type="button" onclick="moveRow(this, 1)">↓</button>
           <button type="button" onclick="removeExpense(this)">Remove</button>
         </td>
       `;
@@ -113,8 +104,7 @@
 
       setupRowListeners(row);
       setupDragForRow(row);
-
-      renumberAndPersistOrders(); // keep S/N in sync
+      renumberAndPersistOrders();
       calculateTotals();
     }
 
@@ -122,18 +112,11 @@
       const docId = row.getAttribute('data-id');
       const inputs = row.querySelectorAll('input, select');
       inputs.forEach(input => {
-        input.addEventListener('input', () => {
-          saveRowToFirestore(row, docId);
-          calculateTotals();
-        });
-        input.addEventListener('change', () => {
-          saveRowToFirestore(row, docId);
-          calculateTotals();
-        });
+        input.addEventListener('input', () => { saveRowToFirestore(row, docId); calculateTotals(); });
+        input.addEventListener('change', () => { saveRowToFirestore(row, docId); calculateTotals(); });
       });
     }
 
-    // --- Firestore ---
     function saveRowToFirestore(row, docId) {
       if (!userId) return;
       const cells = row.cells;
@@ -151,25 +134,17 @@
       if (!userId) return;
       const expensesRef = db.collection('users').doc(userId).collection('expenses');
       const snapshot = await expensesRef.orderBy('order').get();
-      const tbody = qs('#expenses-table tbody');
+      const tbody = document.querySelector('#expenses-table tbody');
       tbody.innerHTML = '';
 
       if (snapshot.empty) {
-        // seed defaults
         const batch = db.batch();
         DEFAULT_EXPENSES.forEach((name, index) => {
           const newDocRef = expensesRef.doc();
-          batch.set(newDocRef, {
-            name, amount: '', paid: 'no', dueDate: '', order: index
-          });
+          batch.set(newDocRef, { name, amount: '', paid: 'no', dueDate: '', order: index });
         });
         await batch.commit();
-        // reload
-        const snap2 = await expensesRef.orderBy('order').get();
-        snap2.forEach(doc => {
-          const { name, amount, paid, dueDate } = doc.data();
-          addExpense(name, amount, paid, dueDate, doc.id);
-        });
+        loadExpenses();
       } else {
         snapshot.forEach(doc => {
           const { name, amount, paid, dueDate } = doc.data();
@@ -190,31 +165,18 @@
       calculateTotals();
     }
 
-    // --- Drag and drop (plus Up/Down buttons) ---
+    // --- Move / Drag ---
     function setupDragForRow(row) {
       let draggedRow = null;
       row.draggable = true;
-
-      row.addEventListener('dragstart', () => {
-        draggedRow = row;
-        row.classList.add('dragging');
-      });
-      row.addEventListener('dragend', () => {
-        row.classList.remove('dragging');
-        renumberAndPersistOrders();
-      });
-
+      row.addEventListener('dragstart', () => { draggedRow = row; row.classList.add('dragging'); });
+      row.addEventListener('dragend', () => { row.classList.remove('dragging'); renumberAndPersistOrders(); });
       row.addEventListener('dragover', e => {
         e.preventDefault();
         const tbody = row.parentNode;
         const rows = Array.from(tbody.children).filter(r => r !== draggedRow);
-        // find closest insert position
         const after = rows.find(r => e.clientY <= r.getBoundingClientRect().top + r.offsetHeight / 2);
-        if (after) {
-          tbody.insertBefore(draggedRow, after);
-        } else {
-          tbody.appendChild(draggedRow);
-        }
+        if (after) tbody.insertBefore(draggedRow, after); else tbody.appendChild(draggedRow);
       });
     }
 
@@ -225,99 +187,63 @@
       const idx = rows.indexOf(row);
       const targetIndex = idx + direction;
       if (targetIndex < 0 || targetIndex >= rows.length) return;
-
-      if (direction < 0) {
-        tbody.insertBefore(row, rows[targetIndex]);
-      } else {
-        tbody.insertBefore(row, rows[targetIndex].nextSibling);
-      }
+      if (direction < 0) tbody.insertBefore(row, rows[targetIndex]);
+      else tbody.insertBefore(row, rows[targetIndex].nextSibling);
       renumberAndPersistOrders();
     }
 
     function renumberAndPersistOrders() {
-      const rows = qsa('#expenses-table tbody tr');
-      rows.forEach((r, i) => {
-        r.querySelector('td.sn').textContent = (i + 1).toString();
-      });
-
-      // Persist new 'order' and keep data
-      rows.forEach(r => {
-        const docId = r.getAttribute('data-id');
-        saveRowToFirestore(r, docId);
-      });
+      const rows = Array.from(document.querySelectorAll('#expenses-table tbody tr'));
+      rows.forEach((r, i) => { r.querySelector('td.sn').textContent = (i + 1).toString(); });
+      rows.forEach(r => { const docId = r.getAttribute('data-id'); saveRowToFirestore(r, docId); });
     }
 
-    // --- Import / Export ---
+    // --- Export ---
     function exportToExcel() {
-      const rows = qsa('#expenses-table tbody tr');
-      const data = [];
-      data.push(['S.No','Expense Type','Amount','Paid','Due Date']);
-
+      const rows = Array.from(document.querySelectorAll('#expenses-table tbody tr'));
+      const data = [['S.No','Expense Type','Amount','Paid','Due Date']];
       rows.forEach(row => {
-        const sn = row.cells[0].textContent || '';
-        const name = row.cells[1].querySelector('input')?.value || '';
-        const amount = row.cells[2].querySelector('input')?.value || '';
-        const paid = row.cells[3].querySelector('select')?.value || '';
-        const dueDate = row.cells[4].querySelector('input')?.value || '';
-        data.push([sn, name, amount, paid, dueDate]);
+        data.push([
+          row.cells[0].textContent || '',
+          row.cells[1].querySelector('input')?.value || '',
+          row.cells[2].querySelector('input')?.value || '',
+          row.cells[3].querySelector('select')?.value || '',
+          row.cells[4].querySelector('input')?.value || ''
+        ]);
       });
-
       const ws = XLSX.utils.aoa_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
-
       const now = new Date();
-      const month = now.toLocaleString('default', { month: 'short' });
-      const year = now.getFullYear();
-      const fileName = `${month}_${year}_expense.xlsx`;
-
+      const fileName = `${now.toLocaleString('default',{month:'short'})}_${now.getFullYear()}_expense.xlsx`;
       XLSX.writeFile(wb, fileName);
-
-      // Clear values after export (amount, paid, dueDate), keep ordering & names
-      setTimeout(() => {
-        rows.forEach(row => {
-          row.cells[2].querySelector('input').value = '';
-          row.cells[3].querySelector('select').value = 'no';
-          row.cells[4].querySelector('input').value = '';
-          const docId = row.getAttribute('data-id');
-          saveRowToFirestore(row, docId);
-        });
-        calculateTotals();
-      }, 300);
     }
 
+    // --- Import ---
     function importFromExcel() {
-      const file = qs('#excel-file').files[0];
+      const file = document.getElementById('excel-file').files[0];
       if (!file) { alert("Please select an Excel file first."); return; }
-
       const reader = new FileReader();
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-        // Expect header like: S.No, Expense Type, Amount, Paid, Due Date
         const header = rows.shift() || [];
-        // Try to detect whether first col is S.No or Expense Type
         const hasSN = (header[0] && String(header[0]).toLowerCase().includes('s.no'));
-
         rows.forEach(r => {
           const [snMaybe, nameMaybe, amountMaybe, paidMaybe, dueMaybe] = r;
           const name = hasSN ? nameMaybe : snMaybe;
           const amount = hasSN ? amountMaybe : nameMaybe ? amountMaybe : '';
           const paid = (hasSN ? paidMaybe : r[2])?.toString().toLowerCase() === 'yes' ? 'yes' : 'no';
           const dueDate = hasSN ? dueMaybe : r[3];
-
-          // find row by expense name (case-insensitive)
           let matchedRow = null;
-          qsa('#expenses-table tbody tr').forEach(row => {
+          Array.from(document.querySelectorAll('#expenses-table tbody tr')).forEach(row => {
             const input = row.cells[1].querySelector('input');
             if (input && input.value.trim().toLowerCase() === (name || '').toString().trim().toLowerCase()) {
               matchedRow = row;
             }
           });
-
           if (matchedRow) {
             matchedRow.cells[2].querySelector('input').value = amount || '';
             matchedRow.cells[3].querySelector('select').value = paid;
@@ -328,7 +254,6 @@
             addExpense(name || '', amount || '', paid, dueDate || '');
           }
         });
-
         renumberAndPersistOrders();
         calculateTotals();
         alert("Imported successfully.");
@@ -339,56 +264,65 @@
     // --- Totals ---
     function calculateTotals() {
       let total = 0, paid = 0, unpaid = 0;
-      const today = new Date(), soon = new Date();
-      soon.setDate(today.getDate() + 9);
-
-      qsa('#expenses-table tbody tr').forEach(row => {
+      const today = new Date(), soon = new Date(); soon.setDate(today.getDate() + 9);
+      Array.from(document.querySelectorAll('#expenses-table tbody tr')).forEach(row => {
         const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
         const status = row.cells[3].querySelector('select').value;
         const due = row.cells[4].querySelector('input').value;
-
         total += amount;
-        if (status === 'yes') {
-          paid += amount;
-          row.style.backgroundColor = '#d4edda';   // green-ish for paid
-        } else {
-          unpaid += amount;
-          row.style.backgroundColor = (due && new Date(due) <= soon) ? '#f8d7da' : '';
-        }
+        if (status === 'yes') { paid += amount; row.style.backgroundColor = '#d4edda'; }
+        else { unpaid += amount; row.style.backgroundColor = (due && new Date(due) <= soon) ? '#f8d7da' : ''; }
       });
-
-      qs('#total-amount').textContent = `$${total.toFixed(2)}`;
-      qs('#total-paid').textContent = `$${paid.toFixed(2)} Paid`;
-      qs('#total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
+      document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('total-paid').textContent = `$${paid.toFixed(2)} Paid`;
+      document.getElementById('total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
     }
 
-    // --- Range total for unpaid ---
+    // --- Range calculator ---
+    function parseSerialExpr(expr) {
+      if (!expr) return [];
+      const s = expr.replace(/\s+/g, '');
+      if (!s) return [];
+      const set = new Set();
+      s.split(',').forEach(part => {
+        if (!part) return;
+        if (part.includes('-')) {
+          const [aStr, bStr] = part.split('-');
+          const a = parseInt(aStr, 10), b = parseInt(bStr, 10);
+          if (Number.isInteger(a) && Number.isInteger(b)) {
+            const start = Math.min(a, b), end = Math.max(a, b);
+            for (let i = start; i <= end; i++) set.add(i);
+          }
+        } else {
+          const n = parseInt(part, 10);
+          if (Number.isInteger(n)) set.add(n);
+        }
+      });
+      return Array.from(set).sort((x,y)=>x-y);
+    }
     function calcRangeUnpaid() {
-      const fromVal = parseInt(qs('#range-from').value, 10);
-      const toVal = parseInt(qs('#range-to').value, 10);
-      if (isNaN(fromVal) || isNaN(toVal)) {
-        qs('#range-total').textContent = 'Enter valid From/To serial numbers.';
+      const expr = document.getElementById('range-input').value;
+      const serials = parseSerialExpr(expr);
+      if (!serials.length) {
+        document.getElementById('range-total').textContent =
+          'Enter serials like 1-10 or 1,3,5 or 2-4,7,9-11.';
         return;
       }
-      const minSN = Math.min(fromVal, toVal);
-      const maxSN = Math.max(fromVal, toVal);
-
+      const rows = Array.from(document.querySelectorAll('#expenses-table tbody tr'));
       let sum = 0;
-      qsa('#expenses-table tbody tr').forEach(row => {
-        const sn = parseInt(row.querySelector('td.sn').textContent, 10);
-        if (sn >= minSN && sn <= maxSN) {
-          const status = row.cells[3].querySelector('select').value;
-          if (status === 'no') {
-            const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
-            sum += amount;
-          }
+      serials.forEach(sn => {
+        const row = rows[sn-1]; if (!row) return;
+        const status = row.cells[3].querySelector('select').value;
+        if (status === 'no') {
+          const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
+          sum += amount;
         }
       });
-
-      qs('#range-total').textContent = `Unpaid total (S.No ${minSN}–${maxSN}): $${sum.toFixed(2)}`;
+      document.getElementById('range-total').textContent =
+        `Unpaid total (S.No ${serials.join(', ')}): $${sum.toFixed(2)}`;
     }
 
-    // Expose some functions globally for inline onclick handlers
+    // expose globally
     window.addExpense = addExpense;
     window.removeExpense = removeExpense;
     window.moveRow = moveRow;
@@ -406,7 +340,6 @@
       <input type="password" id="password" placeholder="Password" />
       <button onclick="signUp()">Sign Up</button>
       <button onclick="signIn()">Sign In</button>
-
       <button class="button" onclick="exportToExcel()">Export to Excel</button>
       <input type="file" id="excel-file" accept=".xlsx, .xls" />
       <button class="button" onclick="importFromExcel()">Import from Excel</button>
@@ -422,8 +355,9 @@
     <!-- Range total calculator -->
     <div id="range-tools">
       <span><strong>Range total (Unpaid only):</strong></span>
-      <label>From S.No: <input type="number" id="range-from" min="1" /></label>
-      <label>To S.No: <input type="number" id="range-to" min="1" /></label>
+      <input type="text" id="range-input"
+        placeholder="e.g. 1-10 or 1,3,5 or 2-4,7,9-11"
+        onkeydown="if (event.key === 'Enter') { calcRangeUnpaid(); }"/>
       <button type="button" onclick="calcRangeUnpaid()">Calculate</button>
       <span id="range-total"></span>
     </div>
@@ -439,21 +373,9 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody><!-- rows injected here --></tbody>
+      <tbody></tbody>
       <tfoot>
         <tr>
           <td><strong>Total</strong></td>
           <td id="total-amount">$0.00</td>
-          <td id="total-paid">$0.00 Paid</td>
-          <td id="total-unpaid">$0.00 Unpaid</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </main>
-
-  <footer>
-    <p>© 2025 Monthly Expenses Tracker</p>
-  </footer>
-</body>
-</html>
+          <td id="total-paid">$
