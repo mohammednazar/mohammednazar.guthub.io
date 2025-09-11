@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Firebase Auth Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input { margin: .25rem 0; padding: .25rem; width: 250px; display: block; }
+    button { margin: .25rem 0; padding: .4rem .8rem; }
+    #output { margin-top: 1rem; white-space: pre-wrap; background:#f6f8fa; padding:1rem; border-radius:6px; }
+    .ok { color:green; }
+    .err { color:darkred; }
+  </style>
+</head>
+<body>
+  <h1>Firebase Auth Test</h1>
+  <p>Enter an email + password and try Sign Up or Sign In. Check messages below.</p>
+
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button id="btn-signup">Sign Up</button>
+  <button id="btn-signin">Sign In</button>
+  <button id="btn-signout">Sign Out</button>
+
+  <div id="output">Waiting…</div>
+
+  <script>
+    // ---- 1. Paste your Firebase web config here ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
+      authDomain: "expensetracker-f57ff.firebaseapp.com",
+      projectId: "expensetracker-f57ff",
+      storageBucket: "expensetracker-f57ff.appspot.com",
+      messagingSenderId: "1034695983927",
+      appId: "1:1034695983927:web:cf632c31f9089ccbc9d0b2"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const output = document.getElementById('output');
+    function log(msg, ok=false) {
+      output.innerHTML = `<div class="${ok?'ok':'err'}">${msg}</div>`;
+      console[ok?'log':'error'](msg);
+    }
+
+    function explain(code) {
+      const tips = {
+        "auth/operation-not-allowed": "Enable Email/Password in Firebase Console → Authentication → Sign-in method.",
+        "auth/unauthorized-domain": "Add your domain (localhost, 127.0.0.1, or your site) to Authentication → Settings → Authorized domains.",
+        "auth/invalid-api-key": "Your config may not match your project. Copy fresh web config from Project settings → General.",
+        "auth/network-request-failed": "Network/extension blocked. Try incognito without extensions or allow Google/Firebase domains.",
+        "auth/user-not-found": "No user with this email. Use Sign Up first or check spelling.",
+        "auth/wrong-password": "Incorrect password.",
+        "auth/too-many-requests": "Too many attempts. Wait or try different browser.",
+        "auth/invalid-email": "Invalid email format."
+      };
+      return tips[code] || "See console details. Usually check Authorized domains and enable Email/Password.";
+    }
+
+    // ---- 2. Wire buttons ----
+    document.getElementById('btn-signup').onclick = async () => {
+      const email = document.getElementById('email').value;
+      const pw = document.getElementById('password').value;
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, pw);
+        log(`SignUp OK: ${cred.user.uid}`, true);
+      } catch(err) {
+        log(`SignUp FAIL: ${err.code} — ${err.message}\nTip: ${explain(err.code)}`);
+      }
+    };
+
+    document.getElementById('btn-signin').onclick = async () => {
+      const email = document.getElementById('email').value;
+      const pw = document.getElementById('password').value;
+      try {
+        const cred = await auth.signInWithEmailAndPassword(email, pw);
+        log(`SignIn OK: ${cred.user.uid}`, true);
+      } catch(err) {
+        log(`SignIn FAIL: ${err.code} — ${err.message}\nTip: ${explain(err.code)}`);
+      }
+    };
+
+    document.getElementById('btn-signout').onclick = async () => {
+      try {
+        await auth.signOut();
+        log("Signed out", true);
+      } catch(err) {
+        log(`SignOut FAIL: ${err.code} — ${err.message}`);
+      }
+    };
+
+    // ---- 3. Listen for auth state ----
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        log(`Auth state: signed in as ${user.email}`, true);
+      } else {
+        log("Auth state: signed out");
+      }
+    });
+  </script>
+</body>
+</html>
