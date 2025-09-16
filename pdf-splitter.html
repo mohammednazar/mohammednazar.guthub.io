@@ -1,42 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>PDF Split to ZIP</title>
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 2rem;
-            max-width: 600px;
-            margin: auto;
-        }
+  <meta charset="UTF-8" />
+  <title>PDF Splitter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        h1 {
-            text-align: center;
-            color: #333;
-        }
+  <!-- Minimal styling -->
+  <style>
+    :root { --border:#ddd; --muted:#666; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:780px;margin:40px auto;padding:0 16px}
+    header, footer{opacity:.9}
+    .card{border:1px solid var(--border);border-radius:12px;padding:16px;background:#fafafa}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    input[type="file"]{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;width:100%}
+    button{padding:.65rem 1rem;border-radius:10px;border:1px solid var(--border);cursor:pointer;background:#fff}
+    button:active{transform:translateY(1px)}
+    #split-status{margin-top:10px;color:var(--muted)}
+    .tips{margin-top:14px;border-top:1px dashed var(--border);padding-top:10px}
+    code{background:#f0f0f0;padding:0 4px;border-radius:6px}
+  </style>
 
-        input, button {
-            display: block;
-            width: 100%;
-            margin: 1rem 0;
-            padding: 0.5rem;
-            font-size: 16px;
-        }
+  <!-- Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
-        #split-status {
-            color: green;
-            font-weight: bold;
-        }
-    </style>
+  <!-- Your JS (defer to ensure DOM is ready) -->
+  <script src="js/pdf-splitter.js" defer></script>
 </head>
 <body>
-    <h1>Split PDF into Pages & Download as ZIP</h1>
+  <header>
+    <h1>PDF Splitter</h1>
+    <p>Split a PDF into individual pages and download each page or a single ZIP.</p>
+  </header>
 
-    <input type="file" id="pdf-input" accept="application/pdf">
-    <button onclick="js/splitPdfToZip()">Split & Download ZIP</button>
-    <p id="split-status"></p>
+  <main>
+    <div class="card">
+      <label for="pdf-input"><strong>Select a PDF</strong></label>
+      <input type="file" id="pdf-input" accept="application/pdf,.pdf" />
+
+      <div class="row">
+        <button id="btn-split" onclick="splitPdf()">Split → download each page</button>
+        <button id="btn-zip" onclick="splitPdfToZip()">Split → download ZIP</button>
+      </div>
+
+      <p id="split-status"></p>
+
+      <div class="tips">
+        <strong>Troubleshooting:</strong>
+        <ul>
+          <li>If you see <em>“encrypted/password-protected”</em>, unlock the PDF and try again.</li>
+          <li>Ensure the <code>pdf-lib</code> and <code>JSZip</code> scripts load (some extensions can block them).</li>
+          <li>For best results, serve via a local server (e.g., <code>python3 -m http.server 8080</code>).</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer style="margin-top:24px">
+    <p>© 2025 PDF Splitter</p>
+  </footer>
 </body>
 </html>
