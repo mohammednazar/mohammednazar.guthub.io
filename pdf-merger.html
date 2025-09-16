@@ -2,104 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Merger (Single-file Demo)</title>
+  <title>PDF Merger</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 16px}
-    header,footer{opacity:.8}
-    button{padding:.6rem 1rem;border-radius:10px;border:1px solid #ccc;cursor:pointer}
-    #merge-status{margin-top:10px}
-  </style>
-  <!-- Load pdf-lib from CDN FIRST -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Load pdf-lib first -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- Your merger logic -->
+  <script src="js/pdf-merger.js" defer></script>
 </head>
 <body>
-<header>
-  <h1>PDF Merger</h1>
-  <p>Select 2+ PDFs and click merge.</p>
-</header>
+  <header class="site-header">
+    <h1>PDF Merger</h1>
+    <nav><a href="index.html">Home</a></nav>
+  </header>
 
-<main>
-  <input type="file" id="pdf-input" multiple accept="application/pdf,.pdf" />
-  <button id="merge-btn">Merge PDFs & Download</button>
-  <p id="merge-status"></p>
-</main>
+  <main class="container">
+    <label class="file-label" for="pdf-input">Choose 2+ PDFs</label>
+    <input type="file" id="pdf-input" multiple accept="application/pdf,.pdf" />
 
-<footer>
-  <p>© 2025 PDF Merger</p>
-</footer>
+    <div class="actions">
+      <button class="button" id="merge-btn" onclick="mergePdfs()">Merge PDFs & Download</button>
+    </div>
 
-<script>
-(function () {
-  const statusEl = document.getElementById('merge-status');
-  const inputEl  = document.getElementById('pdf-input');
-  const btnEl    = document.getElementById('merge-btn');
+    <p id="merge-status" class="status"></p>
 
-  // Make the function global just in case
-  async function mergePdfs() {
-    statusEl.textContent = '';
-    const files = Array.from(inputEl.files || []);
-    if (files.length < 2) {
-      statusEl.textContent = 'Please select at least two PDF files.';
-      return;
-    }
+    <details class="help">
+      <summary>Troubleshooting</summary>
+      <ul>
+        <li>If you see <em>“encrypted/password-protected”</em>, unlock the PDF (remove security) and try again.</li>
+        <li>Make sure the pdf-lib script loads (no adblock/extension blocking).</li>
+        <li>Prefer opening this page via a local server for best results (e.g., <code>python3 -m http.server 8080</code>).</li>
+      </ul>
+    </details>
+  </main>
 
-    // Ensure pdf-lib is loaded and we have the right global
-    const PDFDocument = (window.PDFLib && window.PDFLib.PDFDocument) ? window.PDFLib.PDFDocument : null;
-    if (!PDFDocument) {
-      statusEl.textContent = 'pdf-lib failed to load. Check the CDN <script> tag.';
-      return;
-    }
-
-    statusEl.textContent = 'Merging…';
-    try {
-      // Sort by name for predictable order
-      files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
-
-      const merged = await PDFDocument.create();
-
-      for (const f of files) {
-        // Guard rails for empty/invalid files
-        const buf = await f.arrayBuffer();
-        if (!buf || buf.byteLength === 0) {
-          throw new Error(`"${f.name}" appears empty or unreadable.`);
-        }
-
-        // Some exported PDFs (e.g., print-to-PDF) can be encrypted-without-password; ignoreEncryption helps
-        const src = await PDFDocument.load(buf, { ignoreEncryption: true });
-        const pages = await merged.copyPages(src, src.getPageIndices());
-        pages.forEach(p => merged.addPage(p));
-      }
-
-      const bytes = await merged.save();
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url  = URL.createObjectURL(blob);
-
-      const first = files[0].name.replace(/\.pdf$/i, '');
-      const outName = `${first}-merged-${files.length}.pdf`;
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = outName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      statusEl.textContent = `Done! Downloaded "${outName}".`;
-    } catch (e) {
-      console.error(e);
-      statusEl.textContent = 'Error: ' + (e?.message || String(e));
-    }
-  }
-
-  // Wire up both click and Enter on input
-  btnEl.addEventListener('click', mergePdfs);
-  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') mergePdfs(); });
-
-  // Expose globally to match your original onclick pattern (optional)
-  window.mergePdfs = mergePdfs;
-})();
-</script>
+  <footer class="site-footer">
+    <p>© 2025 PDF Merger</p>
+  </footer>
 </body>
 </html>
