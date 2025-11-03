@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>String Splitter & Merger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #fafafa;
+    }
+
+    header, footer {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+
+    .button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .button:hover {
+      background-color: #45a049;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    ul li {
+      background: #f0f0f0;
+      margin: 3px 0;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    #merged-result {
+      width: 100%;
+      padding: 8px;
+      background: #f5f5f5;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>String Splitter & Merger</h1>
+    <nav><a href="#" onclick="location.reload()">Home</a></nav>
+  </header>
+
+  <main>
+    <textarea id="input-text" rows="5" placeholder="Enter your string here..."></textarea>
+    <input type="text" id="delimiter" placeholder="Enter delimiter (regex supported)">
+    <button class="button" onclick="splitString()">Split String</button>
+
+    <h3>Split Results:</h3>
+    <ul id="output-list"></ul>
+
+    <div id="merge-section" style="display:none; margin-top:20px;">
+      <h3>Merge Split Strings</h3>
+      <input type="text" id="merge-delimiter" placeholder="Enter delimiter to merge">
+      <button class="button" onclick="mergeStrings()">Merge</button>
+
+      <div id="merged-result-container" style="margin-top:10px; display:none;">
+        <textarea id="merged-result" rows="3" readonly></textarea>
+        <button class="button" onclick="copyMerged()">Copy Merged String</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 String Splitter</p>
+  </footer>
+
+  <script>
+    function splitString() {
+      const input = document.getElementById("input-text").value;
+      const delimiter = document.getElementById("delimiter").value;
+      const outputList = document.getElementById("output-list");
+      const mergeSection = document.getElementById("merge-section");
+      const mergedContainer = document.getElementById("merged-result-container");
+
+      outputList.innerHTML = "";
+      mergedContainer.style.display = "none";
+
+      if (!input) {
+        alert("Please enter a string to split.");
+        return;
+      }
+
+      let parts;
+      try {
+        parts = input.split(new RegExp(delimiter));
+      } catch (e) {
+        alert("Invalid regex delimiter!");
+        return;
+      }
+
+      parts.forEach((part, index) => {
+        const li = document.createElement("li");
+        li.textContent = `${index + 1}. ${part}`;
+        outputList.appendChild(li);
+      });
+
+      window.splitParts = parts;
+      mergeSection.style.display = "block";
+    }
+
+    function mergeStrings() {
+      const mergeDelimiter = document.getElementById("merge-delimiter").value || "";
+      const mergedResultContainer = document.getElementById("merged-result-container");
+      const mergedResult = document.getElementById("merged-result");
+
+      if (!window.splitParts || window.splitParts.length === 0) {
+        alert("No strings available to merge. Please split first.");
+        return;
+      }
+
+      const merged = window.splitParts.join(mergeDelimiter);
+      mergedResult.value = merged;
+      mergedResultContainer.style.display = "block";
+    }
+
+    function copyMerged() {
+      const mergedResult = document.getElementById("merged-result");
+      mergedResult.select();
+      document.execCommand("copy");
+      alert("Merged string copied to clipboard!");
+    }
+  </script>
+</body>
+</html>
