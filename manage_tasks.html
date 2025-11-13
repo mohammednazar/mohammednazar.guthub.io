@@ -117,13 +117,12 @@ const lsKey = "taskmgr.tasks.v2";
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
-// Local "today" as Date at local midnight
 function todayDate() {
   const n = new Date();
   return new Date(n.getFullYear(), n.getMonth(), n.getDate());
 }
 
-// Date -> yyyy-mm-dd (local)
+// Date -> yyyy-mm-dd local
 function fmtDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,"0");
@@ -131,7 +130,7 @@ function fmtDate(d){
   return `${y}-${m}-${da}`;
 }
 
-// Parse yyyy-mm-dd to local Date (no timezone tricks)
+// Parse yyyy-mm-dd to local Date
 function parseLocalDate(iso){
   if(!iso) return new Date(NaN);
   const [y,m,d] = iso.split("-").map(n=>parseInt(n,10));
@@ -150,8 +149,7 @@ function addMonths(d, n=1){
   return nd;
 }
 function weekEndSaturday(base){
-  // JS Sunday=0..Saturday=6; end of "work week" as Saturday
-  const wd = base.getDay();
+  const wd = base.getDay(); // Sunday=0..Saturday=6
   const delta = 6 - wd;
   return addDays(base, delta < 0 ? 0 : delta);
 }
@@ -293,12 +291,9 @@ function renderSection(container, arr, emptyMsg){
 /* ========= Weekday sub-sections ========= */
 function renderWeekDays(container, weekBuckets, todayISO, tomorrowISO, weekEndISO){
   container.innerHTML = "";
-
-  // Show from day after tomorrow up to weekEndISO
-  let d = addDays(todayDate(), 2);
+  let d = addDays(todayDate(), 2); // day after tomorrow
   while (fmtDate(d) <= weekEndISO){
     const iso = fmtDate(d);
-    // only show if it's not today or tomorrow (we already bucketed those)
     if(iso > tomorrowISO && iso <= weekEndISO){
       const wd = d.getDay();
       const label = d.toLocaleDateString(undefined,
@@ -477,23 +472,45 @@ function openEditDialog(t){
   document.body.appendChild(overlay);
 }
 
-/* ========= Events ========= */
-$("#addBtn").addEventListener("click", ()=>{
-  const title = $("#newTitle").value;
-  const desc  = $("#newDesc").value;
-  const due   = $("#newDue").value || fmtDate(todayDate());
-  const rec   = $("#newRecurrence").value;
+/* ========= Add task from form (button + Enter) ========= */
+function addTaskFromForm(){
+  const titleEl = $("#newTitle");
+  const descEl  = $("#newDesc");
+  const dueEl   = $("#newDue");
+  const recEl   = $("#newRecurrence");
 
-  if(!title.trim()){ alert("Title is required"); return; }
+  const title = titleEl.value;
+  const desc  = descEl.value;
+  const due   = dueEl.value || fmtDate(todayDate());  // default today
+  const rec   = recEl.value;
+
+  if(!title.trim()){
+    alert("Title is required");
+    titleEl.focus();
+    return;
+  }
 
   tasks.push(newTaskObj({title, description:desc, dueDate:due, recurrence:rec}));
   saveTasks(tasks);
 
-  $("#newTitle").value = "";
-  $("#newDesc").value = "";
-  $("#newDue").value = "";
-  $("#newRecurrence").value = "None";
+  // reset, keep due date as today by default
+  titleEl.value = "";
+  descEl.value  = "";
+  dueEl.value   = fmtDate(todayDate());
+  recEl.value   = "None";
+
   render();
+}
+
+/* ========= Events ========= */
+$("#addBtn").addEventListener("click", addTaskFromForm);
+
+// When user types task name and presses Enter, add with today's date
+$("#newTitle").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    addTaskFromForm();
+  }
 });
 
 // Tabs
@@ -514,6 +531,7 @@ $$(".tab").forEach(btn=>{
 
 /* ========= Init ========= */
 (function init(){
+  // default new task due date = today
   $("#newDue").value = fmtDate(todayDate());
   render();
 })();
