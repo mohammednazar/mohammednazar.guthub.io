@@ -6,120 +6,465 @@
 <title>Task Manager · HTML/JS</title>
 <style>
   :root{
-    --bg:#f6f7fb; --card:#fff; --muted:#6b7280; --border:#e5e7eb;
-    --overdue:#dc2626; --pill:#f9fafb; --pill-border:#e5e7eb;
+    --bg:#0f172a;
+    --app-bg:#f9fafb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --overdue:#dc2626;
+    --pill:#f3f4f6;
+    --pill-border:#e5e7eb;
+    --accent:#2563eb;
+    --accent-soft:#dbeafe;
+    --accent-dark:#1d4ed8;
   }
-  html,body{margin:0;padding:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-  .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
-  h1{margin:0 0 16px}
-  .tabs{display:flex;gap:6px;margin-bottom:16px}
-  .tab{padding:8px 12px;border:1px solid var(--border);background:var(--card);border-radius:10px;cursor:pointer}
-  .tab.active{background:#eef2ff;border-color:#c7d2fe}
-  .row-card{background:var(--card);border:1px solid var(--border);border-radius:10px;margin:10px 0;padding:10px}
-  .columns{display:grid;grid-template-columns:2fr 3fr 1.6fr .9fr .9fr .9fr;gap:8px;align-items:center}
-  .columns.header{font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:6px}
-  .title.overdue{color:var(--overdue);font-weight:700}
-  .desc{max-height:62px;overflow:auto;border:1px dashed var(--border);border-radius:8px;padding:6px;font-size:.9rem;color:#374151;white-space:pre-wrap}
-  .new-form{display:grid;grid-template-columns:2fr 3fr 1.6fr 1fr .9fr;gap:8px}
-  .new-form input,.new-form select{padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
-  .btn{padding:6px 10px;border:1px solid var(--border);background:var(--card);border-radius:8px;cursor:pointer}
-  .btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
-  .btn.primary{background:#1f2937;color:#fff;border-color:#1f2937}
-  .pill{display:inline-block;background:var(--pill);border:1px solid var(--pill-border);border-radius:999px;padding:2px 8px;font-size:.8rem}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .section h3{margin:16px 0 8px}
-  .sub h4{margin:12px 0 6px;font-size:1rem;color:#1f2937}
-  .muted{color:var(--muted)}
-  .mini{font-size:.8rem;color:#6b7280}
-  .counts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
-  .icon-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer}
-  .icon-btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
-  .actions{display:flex;gap:6px;justify-content:flex-end}
-  .completed .title{text-decoration:line-through;color:var(--muted)}
-  .footer-note{margin-top:14px}
-  .quick-dates{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-  .quick-label{font-size:.8rem;color:var(--muted);margin-right:2px}
-  .quick-chip{border-radius:999px;border:1px solid var(--border);background:#f9fafb;padding:4px 10px;font-size:.8rem;cursor:pointer}
-  .quick-chip:hover{background:#e5e7eb}
-  @media (max-width:980px){
-    .columns{grid-template-columns:1.4fr 2fr 1.2fr .8fr .8fr .8fr}
-    .new-form{grid-template-columns:1.4fr 2fr 1.2fr 1fr .9fr}
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:radial-gradient(circle at top,#1d293b,#020617);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+    color:#0f172a;
   }
+
+  .outer{
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 12px;
+  }
+
+  .app{
+    width:100%;
+    max-width:1120px;
+    background:var(--app-bg);
+    border-radius:18px;
+    padding:18px 18px 22px;
+    box-shadow:0 18px 45px rgba(15,23,42,.35);
+  }
+
+  h1{
+    margin:0 0 6px;
+    font-size:1.4rem;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .subtitle{
+    margin:0 0 12px;
+    font-size:.8rem;
+    color:var(--muted);
+  }
+
+  .tabs{
+    display:inline-flex;
+    border-radius:999px;
+    background:#e5e7eb;
+    padding:2px;
+    margin-bottom:14px;
+  }
+  .tab{
+    padding:6px 14px;
+    border-radius:999px;
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    font-size:.85rem;
+    color:#374151;
+  }
+  .tab.active{
+    background:#ffffff;
+    color:#111827;
+    box-shadow:0 1px 4px rgba(15,23,42,.15);
+  }
+
+  /* New task card */
+  .card{
+    background:var(--card);
+    border-radius:14px;
+    padding:10px 12px 12px;
+    border:1px solid var(--border);
+    margin-bottom:10px;
+  }
+
+  .card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .card-title{
+    font-size:.9rem;
+    font-weight:600;
+    color:#111827;
+  }
+
+  .new-form{
+    display:grid;
+    grid-template-columns:2.3fr 3fr 1.5fr 1.4fr .9fr;
+    gap:6px;
+    align-items:center;
+  }
+  .new-form input,
+  .new-form select{
+    padding:8px 9px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#ffffff;
+    font-size:.85rem;
+  }
+
+  .btn{
+    padding:7px 11px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#f9fafb;
+    cursor:pointer;
+    font-size:.8rem;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+  }
+  .btn.primary{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#ffffff;
+  }
+  .btn.primary:hover{background:var(--accent-dark);}
+  .btn:hover{box-shadow:0 1px 5px rgba(15,23,42,.18);}
+
+  .quick-dates{
+    margin-top:6px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+  }
+  .quick-label{
+    font-size:.78rem;
+    color:var(--muted);
+    margin-right:2px;
+  }
+  .quick-chip{
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--pill);
+    padding:3px 9px;
+    font-size:.78rem;
+    cursor:pointer;
+  }
+  .quick-chip:hover{
+    background:var(--accent-soft);
+    border-color:var(--accent);
+  }
+
+  /* Counts */
+  .counts{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin:6px 0 4px;
+  }
+  .counts .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:#ffffff;
+    border-radius:999px;
+    border:1px solid var(--border);
+    padding:3px 9px;
+    font-size:.76rem;
+    color:#374151;
+  }
+  .counts .pill strong{font-weight:600;}
+
+  /* 2-column layout */
+  .grid-2{
+    display:grid;
+    grid-template-columns:1.05fr .95fr;
+    gap:10px;
+    margin-top:6px;
+  }
+  .section{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .section-title{
+    font-size:.85rem;
+    font-weight:600;
+    color:#111827;
+    margin:2px 0 2px;
+  }
+
+  .section-card{
+    background:var(--card);
+    border-radius:12px;
+    border:1px solid var(--border);
+    padding:8px 9px;
+  }
+  .section-card-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:4px;
+  }
+  .section-card-title{
+    font-size:.8rem;
+    font-weight:600;
+  }
+  .section-card-sub{
+    font-size:.75rem;
+    color:var(--muted);
+  }
+
+  .empty-text{
+    font-size:.78rem;
+    color:var(--muted);
+    padding:2px 0 2px 2px;
+  }
+
+  /* Task row */
+  .task-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    padding:7px 8px;
+    border-radius:10px;
+    background:#f9fafb;
+    border:1px solid #e5e7eb;
+    margin-top:5px;
+  }
+  .task-row:hover{
+    background:#f3f4f6;
+    box-shadow:0 1px 4px rgba(15,23,42,.05);
+  }
+
+  .task-main{
+    flex:1;
+    min-width:0;
+  }
+  .task-title-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:2px;
+  }
+  .task-title{
+    font-size:.88rem;
+    font-weight:600;
+    color:#111827;
+    max-width:320px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .task-title.overdue{
+    color:var(--overdue);
+  }
+  .task-meta-pill{
+    font-size:.7rem;
+    padding:2px 7px;
+    border-radius:999px;
+    background:#eef2ff;
+    color:#3730a3;
+  }
+
+  .task-desc{
+    font-size:.78rem;
+    color:#4b5563;
+    max-height:46px;
+    overflow:auto;
+    padding-right:4px;
+    white-space:pre-wrap;
+  }
+
+  .task-side{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:4px;
+  }
+  .task-due-label{
+    font-size:.7rem;
+    color:var(--muted);
+    margin-bottom:1px;
+    text-align:right;
+  }
+  .task-due-input{
+    padding:4px 7px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#ffffff;
+    font-size:.8rem;
+  }
+
+  .task-actions{
+    display:flex;
+    gap:4px;
+  }
+  .icon-btn{
+    width:26px;
+    height:26px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#ffffff;
+    cursor:pointer;
+    font-size:.8rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .icon-btn:hover{
+    box-shadow:0 1px 4px rgba(15,23,42,.18);
+    background:#f9fafb;
+  }
+
+  /* Completed */
+  .completed-title{
+    text-decoration:line-through;
+    color:var(--muted);
+  }
+  .completed-meta{
+    font-size:.75rem;
+    color:var(--muted);
+  }
+
+  .footer-note{
+    margin-top:10px;
+    font-size:.76rem;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+
+  @media (max-width:900px){
+    .new-form{
+      grid-template-columns:1.4fr 2.2fr 1.4fr 1.4fr .9fr;
+    }
+    .task-title{max-width:220px;}
+  }
+
   @media (max-width:720px){
-    .columns{grid-template-columns:1.6fr 1fr 1fr;grid-auto-rows:auto}
-    .columns > :nth-child(n+4){grid-column:span 1}
-    .actions{grid-column:span 3;justify-content:flex-start}
-    .new-form{grid-template-columns:1fr}
+    .new-form{grid-template-columns:1fr;}
+    .grid-2{grid-template-columns:1fr;}
+    .task-row{flex-direction:column;align-items:stretch;}
+    .task-side{align-items:flex-start;}
+    .task-due-label{text-align:left;}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>📝 Task Manager</h1>
+<div class="outer">
+  <div class="app">
+    <h1>📝 Task Manager</h1>
+    <p class="subtitle">Quickly capture, group, and complete tasks with smart dates & recurrence.</p>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="pending">⏳ Pending</button>
-    <button class="tab" data-tab="completed">✅ Completed</button>
-  </div>
-
-  <!-- New Task Row -->
-  <div class="row-card" id="newTaskCard">
-    <div class="new-form">
-      <input id="newTitle" type="text" placeholder="Task title" />
-      <input id="newDesc" type="text" placeholder="Short description (optional)" />
-      <input id="newDue" type="date" />
-      <select id="newRecurrence">
-        <option>None</option>
-        <option>Daily</option>
-        <option>Weekly</option>
-        <option>Monthly</option>
-      </select>
-      <button class="btn primary" id="addBtn" title="Add task">Add</button>
+    <div class="tabs">
+      <button class="tab active" data-tab="pending">⏳ Pending</button>
+      <button class="tab" data-tab="completed">✅ Completed</button>
     </div>
-    <div class="quick-dates">
-      <span class="quick-label">Quick dates:</span>
-      <button type="button" class="quick-chip" id="qd-today">Today</button>
-      <button type="button" class="quick-chip" id="qd-tomorrow">Tomorrow</button>
-      <button type="button" class="quick-chip" id="qd-weekend">Weekend</button>
-      <button type="button" class="quick-chip" id="qd-nextweek">Next Week</button>
-    </div>
-  </div>
 
-  <!-- Counters -->
-  <div class="counts mini" id="counts"></div>
-
-  <!-- Pending / Completed containers -->
-  <div id="pendingTab">
-    <div class="grid-2">
-      <div class="section">
-        <h3>📅 Due Today</h3>
-        <div id="today"></div>
-
-        <h3>🌅 Due Tomorrow</h3>
-        <div id="tomorrow"></div>
-
-        <h3>📆 Due This Week</h3>
-        <div class="sub" id="weekDays"></div>
+    <!-- New Task Card -->
+    <div class="card" id="newTaskCard">
+      <div class="card-header">
+        <div class="card-title">Add Task</div>
+        <div style="font-size:.75rem;color:var(--muted);">Press <strong>Enter</strong> in title to add for today</div>
       </div>
-
-      <div class="section">
-        <h3>⏰ Overdue</h3>
-        <div id="overdue"></div>
-
-        <h3>🔮 Future Tasks</h3>
-        <div id="future"></div>
+      <div class="new-form">
+        <input id="newTitle" type="text" placeholder="Task title" />
+        <input id="newDesc" type="text" placeholder="Short description (optional)" />
+        <input id="newDue" type="date" />
+        <select id="newRecurrence">
+          <option>None</option>
+          <option>Daily</option>
+          <option>Weekly</option>
+          <option>Monthly</option>
+        </select>
+        <button class="btn primary" id="addBtn" title="Add task">
+          <span>＋</span><span>Add</span>
+        </button>
+      </div>
+      <div class="quick-dates">
+        <span class="quick-label">Quick dates:</span>
+        <button type="button" class="quick-chip" id="qd-today">Today</button>
+        <button type="button" class="quick-chip" id="qd-tomorrow">Tomorrow</button>
+        <button type="button" class="quick-chip" id="qd-weekend">Weekend</button>
+        <button type="button" class="quick-chip" id="qd-nextweek">Next Week</button>
       </div>
     </div>
-  </div>
 
-  <div id="completedTab" style="display:none">
-    <div class="row-card columns header">
-      <div>Title</div><div>Description</div><div>Due Date</div><div>Completed At</div><div class="muted">Restore</div><div class="muted">Delete</div>
+    <!-- Counters -->
+    <div class="counts" id="counts"></div>
+
+    <!-- Pending / Completed containers -->
+    <div id="pendingTab">
+      <div class="grid-2">
+        <div class="section">
+          <div class="section-title">Today & This Week</div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">📅 Today</span>
+            </div>
+            <div id="today"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">🌅 Tomorrow</span>
+            </div>
+            <div id="tomorrow"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">📆 This Week</span>
+            </div>
+            <div class="section-card-sub" id="weekInfo"></div>
+            <div id="weekDays"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Timeline</div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">⏰ Overdue</span>
+            </div>
+            <div id="overdue"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <span class="section-card-title">🔮 Future</span>
+            </div>
+            <div id="future"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="completedList"></div>
-  </div>
 
-  <div class="footer-note mini muted">Data is stored locally in your browser (localStorage).</div>
+    <div id="completedTab" style="display:none">
+      <div class="section-title" style="margin-top:4px;">Completed Tasks</div>
+      <div class="section-card" id="completedList"></div>
+    </div>
+
+    <div class="footer-note">
+      <span>Data is stored locally in your browser (localStorage).</span>
+      <span>Tip: Use quick date chips to set due dates faster.</span>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -150,6 +495,7 @@ function parseLocalDate(iso){
 
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
 function addMonths(d, n=1){
   const nd = new Date(d);
   const day = nd.getDate();
@@ -160,19 +506,18 @@ function addMonths(d, n=1){
   return nd;
 }
 
-// Saturday of current week (Sunday..Saturday)
+// Saturday of current week
 function weekEndSaturday(base){
   const wd = base.getDay(); // Sunday=0..Saturday=6
   const delta = 6 - wd;
   return addDays(base, delta < 0 ? 0 : delta);
 }
-
 // Monday of next week
 function nextWeekMonday(base){
   const wd = base.getDay(); // Sunday=0..Saturday=6
-  const deltaToThisMonday = (1 - wd + 7) % 7; // 0-6 days to this week's Monday
-  const thisWeekMonday = addDays(base, deltaToThisMonday);
-  return addDays(thisWeekMonday, 7); // next week's Monday
+  const deltaToThisMonday = (1 - wd + 7) % 7;
+  const thisMon = addDays(base, deltaToThisMonday);
+  return addDays(thisMon, 7);
 }
 
 function nextDue(currentISO, rec){
@@ -221,29 +566,37 @@ function el(tag, opts={}, children=[]){
   return node;
 }
 
-/* ========= Row rendering ========= */
-function taskRow(t){
+/* ========= Task row components ========= */
+function taskRowPending(t){
   const todayISO = fmtDate(todayDate());
   const overdue = t.dueDate < todayISO;
 
-  const titleDiv = el("div", {
-    class: "title" + (overdue ? " overdue" : ""),
+  const titleSpan = el("span", {
+    class: "task-title" + (overdue ? " overdue" : ""),
     text: t.title || "(untitled)"
   });
+  const repeatText = (t.recurrence && t.recurrence !== "None") ? t.recurrence : "No repeat";
+  const repeatPill = el("span",{class:"task-meta-pill", text:repeatText});
+
+  const titleRow = el("div",{class:"task-title-row"},[titleSpan, repeatPill]);
 
   const descText = (t.description || "").trim() || "—";
-  const descDiv = el("div", {class:"desc"});
-  descDiv.textContent = descText;
+  const descDiv = el("div",{class:"task-desc", text:descText});
 
-  const dueInput = el("input", {type:"date", value:t.dueDate, title:"Change due date"});
-  dueInput.addEventListener("change", () => {
+  const main = el("div",{class:"task-main"},[titleRow, descDiv]);
+
+  const dueLabel = el("div",{class:"task-due-label", text:"Due date"});
+  const dueInput = el("input",{
+    class:"task-due-input",
+    type:"date",
+    value:t.dueDate,
+    title:"Change due date"
+  });
+  dueInput.addEventListener("change", ()=>{
     t.dueDate = dueInput.value || t.dueDate;
     saveTasks(tasks);
-    render(); // regroup
+    render();
   });
-
-  const rec = ["None","Daily","Weekly","Monthly"].includes(t.recurrence) ? t.recurrence : "None";
-  const recPill = el("span", {class:"pill", text: rec==="None" ? "None" : rec});
 
   const btnComplete = el("button",{class:"icon-btn", title:"Mark complete"},[document.createTextNode("✔")]);
   btnComplete.addEventListener("click", ()=>{
@@ -275,44 +628,76 @@ function taskRow(t){
     }
   });
 
-  const actions = el("div",{class:"actions"},[btnComplete, btnEdit, btnDelete]);
+  const actions = el("div",{class:"task-actions"},[btnComplete, btnEdit, btnDelete]);
 
-  const row = el("div",{class:"row-card columns"+(t.completed?" completed":"")},[
-    titleDiv,
-    descDiv,
-    el("div",{},[dueInput]),
-    el("div",{},[recPill]),
+  const side = el("div",{class:"task-side"},[
+    dueLabel,
+    dueInput,
     actions
   ]);
-  row.appendChild(el("div")); // spacer
-  return row;
+
+  return el("div",{class:"task-row"},[main, side]);
 }
 
-function listHeader(){
-  return el("div",{class:"row-card columns header"},[
-    el("div",{text:"Title"}),
-    el("div",{text:"Description"}),
-    el("div",{text:"Due Date"}),
-    el("div",{text:"Repeat"}),
-    el("div",{class:"muted",text:"✔"}),
-    el("div",{class:"muted",text:"✏"}),
-  ]);
+function taskRowCompleted(t){
+  const titleSpan = el("span",{class:"task-title completed-title", text:t.title || "(untitled)"});
+  const repeatText = (t.recurrence && t.recurrence !== "None") ? t.recurrence : "No repeat";
+  const repeatPill = el("span",{class:"task-meta-pill", text:repeatText});
+  const titleRow = el("div",{class:"task-title-row"},[titleSpan, repeatPill]);
+
+  const descText = (t.description || "").trim() || "—";
+  const descDiv = el("div",{class:"task-desc", text:descText});
+
+  const dueStr = `Due: ${t.dueDate}`;
+  const compStr = t.completedAt ? `Completed: ${new Date(t.completedAt).toLocaleString()}` : "Completed: -";
+  const meta = el("div",{class:"completed-meta", text: `${dueStr} • ${compStr}`});
+
+  const main = el("div",{class:"task-main"},[titleRow, descDiv, meta]);
+
+  const btnRestore = el("button",{class:"icon-btn", title:"Restore to pending"},[document.createTextNode("🔁")]);
+  btnRestore.addEventListener("click", ()=>{
+    t.completed = false;
+    t.completedAt = null;
+    saveTasks(tasks);
+    render();
+  });
+
+  const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
+  btnDelete.addEventListener("click", ()=>{
+    if(confirm("Delete this task?")){
+      tasks = tasks.filter(x=>x.id!==t.id);
+      saveTasks(tasks);
+      render();
+    }
+  });
+
+  const actions = el("div",{class:"task-actions"},[btnRestore, btnDelete]);
+  const side = el("div",{class:"task-side"},[actions]);
+
+  return el("div",{class:"task-row"},[main, side]);
 }
 
-function renderSection(container, arr, emptyMsg){
+/* ========= Section helpers ========= */
+function renderSection(container, arr, emptyMsg, isCompleted=false){
   container.innerHTML = "";
   if(!arr.length){
-    container.appendChild(el("div",{class:"mini muted", text:emptyMsg}));
+    container.appendChild(el("div",{class:"empty-text", text:emptyMsg}));
     return;
   }
-  container.appendChild(listHeader());
-  arr.forEach(t => container.appendChild(taskRow(t)));
+  arr.forEach(t=>{
+    container.appendChild(isCompleted ? taskRowCompleted(t) : taskRowPending(t));
+  });
 }
 
-/* ========= Weekday sub-sections ========= */
+/* Week days under "This Week" */
 function renderWeekDays(container, weekBuckets, todayISO, tomorrowISO, weekEndISO){
   container.innerHTML = "";
-  let d = addDays(todayDate(), 2); // day after tomorrow
+  const base = todayDate();
+  const weekInfoSpan = $("#weekInfo");
+  weekInfoSpan.textContent = `${todayISO} → ${weekEndISO}`;
+
+  let d = addDays(base, 2); // day after tomorrow
+  let any = false;
   while (fmtDate(d) <= weekEndISO){
     const iso = fmtDate(d);
     if(iso > tomorrowISO && iso <= weekEndISO){
@@ -320,12 +705,17 @@ function renderWeekDays(container, weekBuckets, todayISO, tomorrowISO, weekEndIS
       const label = d.toLocaleDateString(undefined,
         {weekday:"short", month:"short", day:"numeric"});
       const dayTasks = weekBuckets[wd] || [];
-      container.appendChild(el("h4",{text:label}));
+      const dayTitle = el("div",{class:"section-card-sub", text:label});
       const box = el("div");
       renderSection(box, dayTasks, `No tasks for ${label}.`);
+      container.appendChild(dayTitle);
       container.appendChild(box);
+      any = true;
     }
     d = addDays(d,1);
+  }
+  if(!any){
+    container.appendChild(el("div",{class:"empty-text", text:"No remaining tasks this week."}));
   }
 }
 
@@ -345,12 +735,12 @@ function renderCounts(){
   const cDone  = tasks.filter(t=>t.completed).length;
 
   $("#counts").innerHTML = `
-    <span class="pill">Today: ${cToday}</span>
-    <span class="pill">Tomorrow: ${cTom}</span>
-    <span class="pill">This Week: ${cWeek}</span>
-    <span class="pill">Overdue: ${cOver}</span>
-    <span class="pill">Future: ${cFut}</span>
-    <span class="pill">Completed: ${cDone}</span>
+    <span class="pill"><strong>Today</strong> ${cToday}</span>
+    <span class="pill"><strong>Tomorrow</strong> ${cTom}</span>
+    <span class="pill"><strong>This Week</strong> ${cWeek}</span>
+    <span class="pill"><strong>Overdue</strong> ${cOver}</span>
+    <span class="pill"><strong>Future</strong> ${cFut}</span>
+    <span class="pill"><strong>Completed</strong> ${cDone}</span>
   `;
 }
 
@@ -407,57 +797,38 @@ function renderCompleted(){
   cont.innerHTML = "";
 
   const done = tasks.filter(t=>t.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-  if(!done.length){
-    cont.appendChild(el("div",{class:"mini muted", text:"No completed tasks yet."}));
-    return;
-  }
-
-  done.forEach(t=>{
-    const row = el("div",{class:"row-card columns completed"},[
-      el("div",{class:"title", text:t.title || "(untitled)"}),
-      el("div",{class:"desc", text:(t.description||"").trim() || "—"}),
-      el("div",{text:t.dueDate}),
-      el("div",{text: t.completedAt ? new Date(t.completedAt).toLocaleString() : "-"}),
-    ]);
-
-    const btnRestore = el("button",{class:"icon-btn", title:"Restore to pending"},[document.createTextNode("🔁")]);
-    btnRestore.addEventListener("click", ()=>{
-      t.completed = false;
-      t.completedAt = null;
-      saveTasks(tasks);
-      render();
-    });
-
-    const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
-    btnDelete.addEventListener("click", ()=>{
-      if(confirm("Delete this task?")){
-        tasks = tasks.filter(x=>x.id!==t.id);
-        saveTasks(tasks);
-        render();
-      }
-    });
-
-    const actions = el("div",{class:"actions"},[btnRestore, btnDelete]);
-    row.appendChild(actions);
-    row.appendChild(el("div")); // spacer
-    cont.appendChild(row);
-  });
+  renderSection(cont, done, "No completed tasks yet.", true);
 }
 
 /* ========= Edit dialog ========= */
 function openEditDialog(t){
-  const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:50"});
-  const card = el("div",{style:"background:#fff;border:1px solid #e5e7eb;border-radius:12px;max-width:560px;width:92%;padding:16px;box-shadow:0 8px 40px rgba(0,0,0,.15)"});
-  const title = el("h3",{text:"Edit Task"});
+  const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:50"});
+  const card = el("div",{style:"background:#ffffff;border-radius:14px;max-width:520px;width:93%;padding:14px 14px 12px;border:1px solid #e5e7eb;box-shadow:0 20px 50px rgba(15,23,42,.45)"});
+  const title = el("div",{style:"font-size:.9rem;font-weight:600;margin-bottom:6px", text:"Edit Task"});
+
   const form = el("div",{style:"display:grid;grid-template-columns:1fr;gap:8px"});
 
-  const inTitle = el("input",{type:"text", value:t.title, placeholder:"Title", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
-  const inDesc = el("textarea",{placeholder:"Description", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px;min-height:90px"});
+  const inTitle = el("input",{
+    type:"text",
+    value:t.title,
+    placeholder:"Title",
+    style:"padding:8px 9px;border-radius:999px;border:1px solid #e5e7eb"
+  });
+  const inDesc = el("textarea",{
+    placeholder:"Description",
+    style:"padding:8px 9px;border-radius:10px;border:1px solid #e5e7eb;min-height:80px;font-size:.85rem"
+  });
   inDesc.value = t.description || "";
 
-  const row = el("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:8px"});
-  const inDue = el("input",{type:"date", value:t.dueDate, style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
-  const inRec = el("select",{style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  const row = el("div",{style:"display:grid;grid-template-columns:1.1fr 1fr;gap:8px"});
+  const inDue = el("input",{
+    type:"date",
+    value:t.dueDate,
+    style:"padding:8px 9px;border-radius:999px;border:1px solid #e5e7eb"
+  });
+  const inRec = el("select",{
+    style:"padding:8px 9px;border-radius:999px;border:1px solid #e5e7eb"
+  });
   ["None","Daily","Weekly","Monthly"].forEach(opt=>{
     const o = el("option",{text:opt});
     if(opt===t.recurrence) o.selected = true;
@@ -502,7 +873,7 @@ function addTaskFromForm(){
 
   const title = titleEl.value;
   const desc  = descEl.value;
-  const due   = dueEl.value || fmtDate(todayDate());  // default today
+  const due   = dueEl.value || fmtDate(todayDate());
   const rec   = recEl.value;
 
   if(!title.trim()){
@@ -514,7 +885,6 @@ function addTaskFromForm(){
   tasks.push(newTaskObj({title, description:desc, dueDate:due, recurrence:rec}));
   saveTasks(tasks);
 
-  // reset, keep due date as today by default
   titleEl.value = "";
   descEl.value  = "";
   dueEl.value   = fmtDate(todayDate());
@@ -538,16 +908,13 @@ $("#newTitle").addEventListener("keydown", (e)=>{
 $("#qd-today").addEventListener("click", ()=>{
   $("#newDue").value = fmtDate(todayDate());
 });
-
 $("#qd-tomorrow").addEventListener("click", ()=>{
   $("#newDue").value = fmtDate(addDays(todayDate(),1));
 });
-
 $("#qd-weekend").addEventListener("click", ()=>{
   const sat = weekEndSaturday(todayDate());
   $("#newDue").value = fmtDate(sat);
 });
-
 $("#qd-nextweek").addEventListener("click", ()=>{
   const monNext = nextWeekMonday(todayDate());
   $("#newDue").value = fmtDate(monNext);
@@ -571,7 +938,6 @@ $$(".tab").forEach(btn=>{
 
 /* ========= Init ========= */
 (function init(){
-  // default new task due date = today
   $("#newDue").value = fmtDate(todayDate());
   render();
 })();
