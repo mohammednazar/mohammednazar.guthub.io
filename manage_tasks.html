@@ -345,6 +345,12 @@
     justify-content:space-between;
     gap:6px;
     flex-wrap:wrap;
+    align-items:center;
+  }
+  .footer-actions{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
   }
 
   @media (max-width:900px){
@@ -460,9 +466,15 @@
       <div class="section-card" id="completedList"></div>
     </div>
 
+    <!-- Hidden file input for restore -->
+    <input type="file" id="importFile" accept="application/json" style="display:none" />
+
     <div class="footer-note">
-      <span>Data is stored locally in your browser (localStorage).</span>
-      <span>Tip: Use quick date chips to set due dates faster.</span>
+      <span>Data is stored locally in your browser (and you can backup/restore as JSON).</span>
+      <div class="footer-actions">
+        <button class="btn" id="btnExport">💾 Backup JSON</button>
+        <button class="btn" id="btnImport">📂 Restore JSON</button>
+      </div>
     </div>
   </div>
 </div>
@@ -893,6 +905,48 @@ function addTaskFromForm(){
   render();
 }
 
+/* ========= Backup / Restore ========= */
+function exportTasks(){
+  const dataStr = JSON.stringify(tasks, null, 2);
+  const blob = new Blob([dataStr], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const todayISO = fmtDate(todayDate());
+  a.href = url;
+  a.download = `tasks-backup-${todayISO}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importTasksFromFile(file){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!Array.isArray(parsed)){
+        alert("Invalid backup file (expected an array).");
+        return;
+      }
+      // naive validation: ensure objects have at least an id and title
+      parsed.forEach(t=>{
+        if(!t.id) t.id = crypto.randomUUID();
+        if(typeof t.completed === "undefined") t.completed = false;
+        if(typeof t.recurrence === "undefined") t.recurrence = "None";
+      });
+      tasks = parsed;
+      saveTasks(tasks);
+      render();
+      alert("Tasks restored successfully.");
+    } catch(err){
+      console.error(err);
+      alert("Could not read backup file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 /* ========= Events ========= */
 $("#addBtn").addEventListener("click", addTaskFromForm);
 
@@ -934,6 +988,17 @@ $$(".tab").forEach(btn=>{
       $("#completedTab").style.display = "block";
     }
   });
+});
+
+// Backup / Restore buttons
+$("#btnExport").addEventListener("click", exportTasks);
+$("#btnImport").addEventListener("click", ()=>{
+  $("#importFile").click();
+});
+$("#importFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(file) importTasksFromFile(file);
+  e.target.value = ""; // reset so selecting same file again works
 });
 
 /* ========= Init ========= */
