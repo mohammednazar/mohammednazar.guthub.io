@@ -30,13 +30,17 @@
   .section h3{margin:16px 0 8px}
   .sub h4{margin:12px 0 6px;font-size:1rem;color:#1f2937}
   .muted{color:var(--muted)}
-  .mini{font-size:.8rem;color:var(--muted)}
+  .mini{font-size:.8rem;color:#6b7280}
   .counts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
   .icon-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer}
   .icon-btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
   .actions{display:flex;gap:6px;justify-content:flex-end}
   .completed .title{text-decoration:line-through;color:var(--muted)}
   .footer-note{margin-top:14px}
+  .quick-dates{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .quick-label{font-size:.8rem;color:var(--muted);margin-right:2px}
+  .quick-chip{border-radius:999px;border:1px solid var(--border);background:#f9fafb;padding:4px 10px;font-size:.8rem;cursor:pointer}
+  .quick-chip:hover{background:#e5e7eb}
   @media (max-width:980px){
     .columns{grid-template-columns:1.4fr 2fr 1.2fr .8fr .8fr .8fr}
     .new-form{grid-template-columns:1.4fr 2fr 1.2fr 1fr .9fr}
@@ -71,6 +75,13 @@
         <option>Monthly</option>
       </select>
       <button class="btn primary" id="addBtn" title="Add task">Add</button>
+    </div>
+    <div class="quick-dates">
+      <span class="quick-label">Quick dates:</span>
+      <button type="button" class="quick-chip" id="qd-today">Today</button>
+      <button type="button" class="quick-chip" id="qd-tomorrow">Tomorrow</button>
+      <button type="button" class="quick-chip" id="qd-weekend">Weekend</button>
+      <button type="button" class="quick-chip" id="qd-nextweek">Next Week</button>
     </div>
   </div>
 
@@ -148,10 +159,20 @@ function addMonths(d, n=1){
   nd.setDate(clamp(day,1,last));
   return nd;
 }
+
+// Saturday of current week (Sunday..Saturday)
 function weekEndSaturday(base){
   const wd = base.getDay(); // Sunday=0..Saturday=6
   const delta = 6 - wd;
   return addDays(base, delta < 0 ? 0 : delta);
+}
+
+// Monday of next week
+function nextWeekMonday(base){
+  const wd = base.getDay(); // Sunday=0..Saturday=6
+  const deltaToThisMonday = (1 - wd + 7) % 7; // 0-6 days to this week's Monday
+  const thisWeekMonday = addDays(base, deltaToThisMonday);
+  return addDays(thisWeekMonday, 7); // next week's Monday
 }
 
 function nextDue(currentISO, rec){
@@ -505,12 +526,31 @@ function addTaskFromForm(){
 /* ========= Events ========= */
 $("#addBtn").addEventListener("click", addTaskFromForm);
 
-// When user types task name and presses Enter, add with today's date
+// Enter on task name => add task with today's date (if due empty)
 $("#newTitle").addEventListener("keydown", (e)=>{
   if(e.key === "Enter"){
     e.preventDefault();
     addTaskFromForm();
   }
+});
+
+// Quick date chips
+$("#qd-today").addEventListener("click", ()=>{
+  $("#newDue").value = fmtDate(todayDate());
+});
+
+$("#qd-tomorrow").addEventListener("click", ()=>{
+  $("#newDue").value = fmtDate(addDays(todayDate(),1));
+});
+
+$("#qd-weekend").addEventListener("click", ()=>{
+  const sat = weekEndSaturday(todayDate());
+  $("#newDue").value = fmtDate(sat);
+});
+
+$("#qd-nextweek").addEventListener("click", ()=>{
+  const monNext = nextWeekMonday(todayDate());
+  $("#newDue").value = fmtDate(monNext);
 });
 
 // Tabs
