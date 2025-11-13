@@ -117,8 +117,23 @@
 const lsKey = "taskmgr.tasks.v1";
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
-const fmtDate = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-const today = () => new Date(new Date().toDateString());
+
+// Format local Date -> yyyy-mm-dd (local)
+const fmtDate = d => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const da = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+};
+
+// Parse yyyy-mm-dd as **LOCAL** date (not UTC!)
+function parseLocalDate(iso){
+  if(!iso) return new Date(NaN);
+  const [y,m,d] = iso.split("-").map(n=>parseInt(n,10));
+  return new Date(y, (m||1)-1, d||1); // local midnight
+}
+
+const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 const weekEndSunday = (base) => { const wd = base.getDay(); const delta = 6 - wd; return addDays(base, delta < 0 ? 0 : delta); };
 const isSameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
@@ -133,10 +148,10 @@ function addMonths(d, n=1){
   return nd;
 }
 function nextDue(currentISO, rec){
-  const d = new Date(currentISO);
-  if(rec==="Daily") return fmtDate(addDays(d,1));
+  const d = parseLocalDate(currentISO);
+  if(rec==="Daily")  return fmtDate(addDays(d,1));
   if(rec==="Weekly") return fmtDate(addDays(d,7));
-  if(rec==="Monthly") return fmtDate(addMonths(d,1));
+  if(rec==="Monthly")return fmtDate(addMonths(d,1));
   return currentISO;
 }
 
@@ -152,7 +167,7 @@ function newTaskObj({title, description, dueDate, recurrence}){
     id: crypto.randomUUID(),
     title: title.trim(),
     description: (description||"").trim(),
-    dueDate, // ISO yyyy-mm-dd
+    dueDate, // yyyy-mm-dd
     createdAt: now.toISOString(),
     completed: false,
     completedAt: null,
@@ -178,8 +193,8 @@ function el(tag, opts={}, children=[]){
   return node;
 }
 
-function taskRow(t, opts={}){
-  const dueD = new Date(t.dueDate);
+function taskRow(t){
+  const dueD = parseLocalDate(t.dueDate);
   const overdue = dueD < today();
   const titleDiv = el("div", {class: "title"+(overdue ? " overdue": ""), text: t.title || "(untitled)"});
 
@@ -196,13 +211,12 @@ function taskRow(t, opts={}){
   const rec = ["None","Daily","Weekly","Monthly"].includes(t.recurrence) ? t.recurrence : "None";
   const recPill = el("span", {class:"pill", text: rec==="None" ? "None" : rec});
 
-  const actionComplete = el("button",{class:"icon-btn", title:"Mark complete"}, "✔".split("").map(c=>document.createTextNode(c)));
+  const actionComplete = el("button",{class:"icon-btn", title:"Mark complete"}, [document.createTextNode("✔")]);
   actionComplete.addEventListener("click", ()=>{
     if(t.completed) return;
     t.completed = true;
     t.completedAt = new Date().toISOString();
     if(t.recurrence && t.recurrence!=="None"){
-      // spawn the next occurrence
       const next = newTaskObj({
         title: t.title,
         description: t.description,
@@ -214,12 +228,10 @@ function taskRow(t, opts={}){
     saveTasks(tasks); render();
   });
 
-  const actionEdit = el("button",{class:"icon-btn", title:"Edit task (title/description/recurrence)"}, "✏".split("").map(c=>document.createTextNode(c)));
-  actionEdit.addEventListener("click", ()=>{
-    openEditDialog(t);
-  });
+  const actionEdit = el("button",{class:"icon-btn", title:"Edit task (title/description/recurrence)"}, [document.createTextNode("✏")]);
+  actionEdit.addEventListener("click", ()=> openEditDialog(t));
 
-  const actionDelete = el("button",{class:"icon-btn", title:"Delete task"}, "🗑".split("").map(c=>document.createTextNode(c)));
+  const actionDelete = el("button",{class:"icon-btn", title:"Delete task"}, [document.createTextNode("🗑")]);
   actionDelete.addEventListener("click", ()=>{
     if(confirm("Delete this task?")) {
       tasks = tasks.filter(x=>x.id!==t.id);
@@ -232,8 +244,7 @@ function taskRow(t, opts={}){
   const row = el("div",{class:"row-card columns"+(t.completed?" completed":"")}, [
     titleDiv, descDiv, el("div",{},[dueInput]), el("div",{},[recPill]), actions
   ]);
-  // columns grid has 6 slots; we already appended 5 nodes, add a spacer for layout symmetry
-  row.appendChild(el("div"));
+  row.appendChild(el("div")); // spacer for grid symmetry
   return row;
 }
 
@@ -257,7 +268,6 @@ function renderSection(container, arr, emptyMsg="No tasks."){
 
 function renderWeekDays(container, map, startDate, endDate){
   container.innerHTML = "";
-  // Show from day after tomorrow up to Sunday (or remaining of week)
   const base = today();
   const tomorrow = addDays(base, 1);
   for(let d = addDays(tomorrow,1); d <= endDate; d = addDays(d,1)){
@@ -273,11 +283,11 @@ function renderWeekDays(container, map, startDate, endDate){
 function countsBadge(){
   const base = today(), tom = addDays(base,1), end = weekEndSunday(base);
   const pending = tasks.filter(t=>!t.completed);
-  const cToday = pending.filter(t=>isSameDay(new Date(t.dueDate), base)).length;
-  const cTom = pending.filter(t=>isSameDay(new Date(t.dueDate), tom)).length;
-  const cWeek = pending.filter(t=>{ const d=new Date(t.dueDate); return d>tom && d<=end; }).length;
-  const cOver = pending.filter(t=>new Date(t.dueDate)<base).length;
-  const cFut = pending.filter(t=>new Date(t.dueDate)>end).length;
+  const cToday = pending.filter(t=>isSameDay(parseLocalDate(t.dueDate), base)).length;
+  const cTom = pending.filter(t=>isSameDay(parseLocalDate(t.dueDate), tom)).length;
+  const cWeek = pending.filter(t=>{ const d=parseLocalDate(t.dueDate); return d>tom && d<=end; }).length;
+  const cOver = pending.filter(t=>parseLocalDate(t.dueDate)<base).length;
+  const cFut = pending.filter(t=>parseLocalDate(t.dueDate)>end).length;
   const cDone = tasks.filter(t=>t.completed).length;
   $("#counts").innerHTML = `
     <span class="pill">Today: ${cToday}</span>
@@ -290,7 +300,7 @@ function countsBadge(){
 }
 
 function render(){
-  // sort tasks by due date
+  // sort tasks by due date string (yyyy-mm-dd)
   tasks.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   countsBadge();
 
@@ -308,7 +318,7 @@ function render(){
   };
 
   pending.forEach(t=>{
-    const d = new Date(t.dueDate);
+    const d = parseLocalDate(t.dueDate);
     if(d < base) buckets.overdue.push(t);
     else if(isSameDay(d, base)) buckets.today.push(t);
     else if(isSameDay(d, tom)) buckets.tomorrow.push(t);
@@ -353,12 +363,10 @@ function renderCompleted(){
       el("div",{text: t.completedAt ? new Date(t.completedAt).toLocaleString() : "-"}),
     ]);
 
-    // Restore
     const btnRestore = el("button",{class:"icon-btn", title:"Restore to pending"},[document.createTextNode("🔁")]);
     btnRestore.addEventListener("click", ()=>{
       t.completed = false; t.completedAt = null; saveTasks(tasks); render();
     });
-    // Delete
     const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
     btnDelete.addEventListener("click", ()=>{
       if(confirm("Delete this task?")){
@@ -368,7 +376,6 @@ function renderCompleted(){
 
     const actionsWrap = el("div",{class:"actions"},[btnRestore, btnDelete]);
     row.appendChild(actionsWrap);
-    // spacer for grid symmetry
     row.appendChild(el("div"));
     cont.appendChild(row);
   });
@@ -419,7 +426,7 @@ $("#addBtn").addEventListener("click", ()=>{
   if(!title.trim()){ alert("Title is required"); return; }
   tasks.push(newTaskObj({title, description:desc, dueDate:due, recurrence:rec}));
   saveTasks(tasks);
-  // reset title (and keep the rest if you like)
+  // reset
   $("#newTitle").value = "";
   $("#newDesc").value = "";
   $("#newDue").value = "";
@@ -440,8 +447,7 @@ $$(".tab").forEach(btn=>{
 
 /* ========= Init ========= */
 (function init(){
-  // default new due = today
-  $("#newDue").value = fmtDate(today());
+  $("#newDue").value = fmtDate(today()); // default due = today
   render();
 })();
 </script>
