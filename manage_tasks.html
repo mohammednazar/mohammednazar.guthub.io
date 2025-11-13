@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Task Manager · HTML/JS</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#fff; --muted:#6b7280; --border:#e5e7eb;
+    --overdue:#dc2626; --ok:#111827; --pill:#f9fafb; --pill-border:#e5e7eb;
+    --accent:#2563eb; --green:#16a34a;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+  h1{margin:0 0 16px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px}
+  .tab{padding:8px 12px;border:1px solid var(--border);background:var(--card);border-radius:10px;cursor:pointer}
+  .tab.active{background:#eef2ff;border-color:#c7d2fe}
+  .row-card{background:var(--card);border:1px solid var(--border);border-radius:10px;margin:10px 0;padding:10px}
+  .columns{display:grid;grid-template-columns:2fr 3fr 1.6fr .9fr .9fr .9fr;gap:8px;align-items:center}
+  .columns.header{font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:6px}
+  .title.overdue{color:var(--overdue);font-weight:700}
+  .desc{max-height:62px;overflow:auto;border:1px dashed var(--border);border-radius:8px;padding:6px;font-size:.9rem;color:#374151;white-space:pre-wrap}
+  .new-form{display:grid;grid-template-columns:2fr 3fr 1.6fr 1fr .9fr;gap:8px}
+  .new-form input, .new-form select{padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+  .btn{padding:6px 10px;border:1px solid var(--border);background:var(--card);border-radius:8px;cursor:pointer}
+  .btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
+  .btn.primary{background:#1f2937;color:#fff;border-color:#1f2937}
+  .pill{display:inline-block;background:var(--pill);border:1px solid var(--pill-border);border-radius:999px;padding:2px 8px;font-size:.8rem}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .section h3{margin:16px 0 8px}
+  .sub h4{margin:12px 0 6px;font-size:1rem;color:#1f2937}
+  .muted{color:var(--muted)}
+  .mini{font-size:.8rem;color:var(--muted)}
+  .counts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
+  .icon-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer}
+  .icon-btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
+  .actions{display:flex;gap:6px;justify-content:flex-end}
+  .completed .title{color:var(--muted);text-decoration:line-through}
+  .footer-note{margin-top:14px}
+  @media (max-width:980px){
+    .columns{grid-template-columns:1.4fr 2fr 1.2fr .8fr .8fr .8fr}
+    .new-form{grid-template-columns:1.4fr 2fr 1.2fr 1fr .9fr}
+  }
+  @media (max-width:720px){
+    .columns{grid-template-columns:1.6fr 1fr 1fr;grid-auto-rows:auto}
+    .columns > :nth-child(n+4){grid-column:span 1}
+    .actions{grid-column:span 3;justify-content:flex-start}
+    .new-form{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📝 Task Manager</h1>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="pending">⏳ Pending</button>
+    <button class="tab" data-tab="completed">✅ Completed</button>
+  </div>
+
+  <!-- New Task Row -->
+  <div class="row-card" id="newTaskCard">
+    <div class="new-form">
+      <input id="newTitle" type="text" placeholder="Task title" />
+      <input id="newDesc" type="text" placeholder="Short description (optional)" />
+      <input id="newDue" type="date" />
+      <select id="newRecurrence">
+        <option>None</option>
+        <option>Daily</option>
+        <option>Weekly</option>
+        <option>Monthly</option>
+      </select>
+      <button class="btn primary" id="addBtn" title="Add task">Add</button>
+    </div>
+  </div>
+
+  <!-- Counters -->
+  <div class="counts mini" id="counts"></div>
+
+  <!-- Pending / Completed containers -->
+  <div id="pendingTab">
+    <div class="grid-2">
+      <div class="section" id="leftCol">
+        <h3>📅 Due Today</h3>
+        <div id="today"></div>
+
+        <h3>🌅 Due Tomorrow</h3>
+        <div id="tomorrow"></div>
+
+        <h3>📆 Due This Week</h3>
+        <div class="sub" id="weekDays"></div>
+      </div>
+
+      <div class="section" id="rightCol">
+        <h3>⏰ Overdue</h3>
+        <div id="overdue"></div>
+
+        <h3>🔮 Future Tasks</h3>
+        <div id="future"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="completedTab" style="display:none">
+    <div class="row-card columns header">
+      <div>Title</div><div>Description</div><div>Due Date</div><div>Completed At</div><div class="muted">Restore</div><div class="muted">Delete</div>
+    </div>
+    <div id="completedList"></div>
+  </div>
+
+  <div class="footer-note mini muted">Data is stored locally in your browser (localStorage).</div>
+</div>
+
+<script>
+/* ========= Utilities ========= */
+const lsKey = "taskmgr.tasks.v1";
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const fmtDate = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const today = () => new Date(new Date().toDateString());
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const weekEndSunday = (base) => { const wd = base.getDay(); const delta = 6 - wd; return addDays(base, delta < 0 ? 0 : delta); };
+const isSameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+function addMonths(d, n=1){
+  const nd = new Date(d);
+  const day = nd.getDate();
+  nd.setDate(1);
+  nd.setMonth(nd.getMonth()+n);
+  const last = new Date(nd.getFullYear(), nd.getMonth()+1, 0).getDate();
+  nd.setDate(clamp(day,1,last));
+  return nd;
+}
+function nextDue(currentISO, rec){
+  const d = new Date(currentISO);
+  if(rec==="Daily") return fmtDate(addDays(d,1));
+  if(rec==="Weekly") return fmtDate(addDays(d,7));
+  if(rec==="Monthly") return fmtDate(addMonths(d,1));
+  return currentISO;
+}
+
+/* ========= Data layer ========= */
+function loadTasks(){
+  try { return JSON.parse(localStorage.getItem(lsKey)) || []; } catch { return []; }
+}
+function saveTasks(tasks){ localStorage.setItem(lsKey, JSON.stringify(tasks)); }
+
+function newTaskObj({title, description, dueDate, recurrence}){
+  const now = new Date();
+  return {
+    id: crypto.randomUUID(),
+    title: title.trim(),
+    description: (description||"").trim(),
+    dueDate, // ISO yyyy-mm-dd
+    createdAt: now.toISOString(),
+    completed: false,
+    completedAt: null,
+    recurrence: recurrence || "None"
+  };
+}
+
+/* ========= State ========= */
+let tasks = loadTasks();
+
+/* ========= Rendering ========= */
+function el(tag, opts={}, children=[]){
+  const node = document.createElement(tag);
+  Object.entries(opts).forEach(([k,v])=>{
+    if(k==="class") node.className = v;
+    else if(k==="text") node.textContent = v;
+    else if(k==="html") node.innerHTML = v;
+    else if(k==="title") node.title = v;
+    else if(k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  });
+  (Array.isArray(children)?children:[children]).filter(Boolean).forEach(ch => node.appendChild(ch));
+  return node;
+}
+
+function taskRow(t, opts={}){
+  const dueD = new Date(t.dueDate);
+  const overdue = dueD < today();
+  const titleDiv = el("div", {class: "title"+(overdue ? " overdue": ""), text: t.title || "(untitled)"});
+
+  const desc = (t.description || "").trim() || "—";
+  const descDiv = el("div", {class:"desc"}); descDiv.textContent = desc;
+
+  const dueInput = el("input", {type:"date", value:t.dueDate, title:"Change due date"});
+  dueInput.addEventListener("change", () => {
+    t.dueDate = dueInput.value;
+    saveTasks(tasks);
+    render(); // regroup immediately
+  });
+
+  const rec = ["None","Daily","Weekly","Monthly"].includes(t.recurrence) ? t.recurrence : "None";
+  const recPill = el("span", {class:"pill", text: rec==="None" ? "None" : rec});
+
+  const actionComplete = el("button",{class:"icon-btn", title:"Mark complete"}, "✔".split("").map(c=>document.createTextNode(c)));
+  actionComplete.addEventListener("click", ()=>{
+    if(t.completed) return;
+    t.completed = true;
+    t.completedAt = new Date().toISOString();
+    if(t.recurrence && t.recurrence!=="None"){
+      // spawn the next occurrence
+      const next = newTaskObj({
+        title: t.title,
+        description: t.description,
+        dueDate: nextDue(t.dueDate, t.recurrence),
+        recurrence: t.recurrence
+      });
+      tasks.push(next);
+    }
+    saveTasks(tasks); render();
+  });
+
+  const actionEdit = el("button",{class:"icon-btn", title:"Edit task (title/description/recurrence)"}, "✏".split("").map(c=>document.createTextNode(c)));
+  actionEdit.addEventListener("click", ()=>{
+    openEditDialog(t);
+  });
+
+  const actionDelete = el("button",{class:"icon-btn", title:"Delete task"}, "🗑".split("").map(c=>document.createTextNode(c)));
+  actionDelete.addEventListener("click", ()=>{
+    if(confirm("Delete this task?")) {
+      tasks = tasks.filter(x=>x.id!==t.id);
+      saveTasks(tasks); render();
+    }
+  });
+
+  const actions = el("div",{class:"actions"}, [actionComplete, actionEdit, actionDelete]);
+
+  const row = el("div",{class:"row-card columns"+(t.completed?" completed":"")}, [
+    titleDiv, descDiv, el("div",{},[dueInput]), el("div",{},[recPill]), actions
+  ]);
+  // columns grid has 6 slots; we already appended 5 nodes, add a spacer for layout symmetry
+  row.appendChild(el("div"));
+  return row;
+}
+
+function listHeader(){
+  return el("div",{class:"row-card columns header"},[
+    el("div",{text:"Title"}),
+    el("div",{text:"Description"}),
+    el("div",{text:"Due Date"}),
+    el("div",{text:"Repeat"}),
+    el("div",{class:"muted",text:"✔"}),
+    el("div",{class:"muted",text:"✏"}),
+  ]);
+}
+
+function renderSection(container, arr, emptyMsg="No tasks."){
+  container.innerHTML = "";
+  if(arr.length===0){ container.appendChild(el("div",{class:"mini muted", text:emptyMsg})); return; }
+  container.appendChild(listHeader());
+  arr.forEach(t => container.appendChild(taskRow(t)));
+}
+
+function renderWeekDays(container, map, startDate, endDate){
+  container.innerHTML = "";
+  // Show from day after tomorrow up to Sunday (or remaining of week)
+  const base = today();
+  const tomorrow = addDays(base, 1);
+  for(let d = addDays(tomorrow,1); d <= endDate; d = addDays(d,1)){
+    const dayTasks = map[d.getDay()] || [];
+    const label = d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"});
+    container.appendChild(el("h4",{text: label}));
+    const box = el("div");
+    renderSection(box, dayTasks, `No tasks for ${label}.`);
+    container.appendChild(box);
+  }
+}
+
+function countsBadge(){
+  const base = today(), tom = addDays(base,1), end = weekEndSunday(base);
+  const pending = tasks.filter(t=>!t.completed);
+  const cToday = pending.filter(t=>isSameDay(new Date(t.dueDate), base)).length;
+  const cTom = pending.filter(t=>isSameDay(new Date(t.dueDate), tom)).length;
+  const cWeek = pending.filter(t=>{ const d=new Date(t.dueDate); return d>tom && d<=end; }).length;
+  const cOver = pending.filter(t=>new Date(t.dueDate)<base).length;
+  const cFut = pending.filter(t=>new Date(t.dueDate)>end).length;
+  const cDone = tasks.filter(t=>t.completed).length;
+  $("#counts").innerHTML = `
+    <span class="pill">Today: ${cToday}</span>
+    <span class="pill">Tomorrow: ${cTom}</span>
+    <span class="pill">This Week: ${cWeek}</span>
+    <span class="pill">Overdue: ${cOver}</span>
+    <span class="pill">Future: ${cFut}</span>
+    <span class="pill">Completed: ${cDone}</span>
+  `;
+}
+
+function render(){
+  // sort tasks by due date
+  tasks.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  countsBadge();
+
+  const base = today();
+  const tom = addDays(base,1);
+  const end = weekEndSunday(base);
+
+  const pending = tasks.filter(t=>!t.completed);
+  const buckets = {
+    overdue: [],
+    today: [],
+    tomorrow: [],
+    weekMap: {0:[],1:[],2:[],3:[],4:[],5:[],6:[]},
+    future: []
+  };
+
+  pending.forEach(t=>{
+    const d = new Date(t.dueDate);
+    if(d < base) buckets.overdue.push(t);
+    else if(isSameDay(d, base)) buckets.today.push(t);
+    else if(isSameDay(d, tom)) buckets.tomorrow.push(t);
+    else if(d > tom && d <= end) buckets.weekMap[d.getDay()].push(t);
+    else if(d > end) buckets.future.push(t);
+  });
+
+  // sort each bucket
+  ["overdue","today","tomorrow","future"].forEach(k=>{
+    buckets[k].sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  });
+  Object.values(buckets.weekMap).forEach(arr=>arr.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)));
+
+  // render left column
+  renderSection($("#today"), buckets.today, "No tasks today.");
+  renderSection($("#tomorrow"), buckets.tomorrow, "No tasks tomorrow.");
+  renderWeekDays($("#weekDays"), buckets.weekMap, addDays(tom,1), end);
+
+  // right column
+  renderSection($("#overdue"), buckets.overdue, "No overdue tasks 🎉");
+  renderSection($("#future"), buckets.future, "No future tasks 🎉");
+
+  // completed tab
+  renderCompleted();
+}
+
+function renderCompleted(){
+  const cont = $("#completedList");
+  cont.innerHTML = "";
+
+  const done = tasks.filter(t=>t.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  if(done.length===0){
+    cont.appendChild(el("div",{class:"mini muted", text:"No completed tasks yet."}));
+    return;
+  }
+
+  done.forEach(t=>{
+    const row = el("div",{class:"row-card columns completed"},[
+      el("div",{class:"title", text:t.title || "(untitled)"}),
+      el("div",{class:"desc", text:(t.description||"").trim() || "—"}),
+      el("div",{text:t.dueDate}),
+      el("div",{text: t.completedAt ? new Date(t.completedAt).toLocaleString() : "-"}),
+    ]);
+
+    // Restore
+    const btnRestore = el("button",{class:"icon-btn", title:"Restore to pending"},[document.createTextNode("🔁")]);
+    btnRestore.addEventListener("click", ()=>{
+      t.completed = false; t.completedAt = null; saveTasks(tasks); render();
+    });
+    // Delete
+    const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
+    btnDelete.addEventListener("click", ()=>{
+      if(confirm("Delete this task?")){
+        tasks = tasks.filter(x=>x.id!==t.id); saveTasks(tasks); render();
+      }
+    });
+
+    const actionsWrap = el("div",{class:"actions"},[btnRestore, btnDelete]);
+    row.appendChild(actionsWrap);
+    // spacer for grid symmetry
+    row.appendChild(el("div"));
+    cont.appendChild(row);
+  });
+}
+
+/* ========= Edit Dialog ========= */
+function openEditDialog(t){
+  const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:50"});
+  const card = el("div",{style:"background:#fff;border:1px solid #e5e7eb;border-radius:12px;max-width:560px;width:92%;padding:16px;box-shadow:0 8px 40px rgba(0,0,0,.15)"});
+  const title = el("h3",{text:"Edit Task"});
+  const f = el("div",{style:"display:grid;grid-template-columns:1fr;gap:8px"});
+  const inTitle = el("input",{type:"text", value:t.title, placeholder:"Title", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  const inDesc  = el("textarea",{placeholder:"Description", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px;min-height:90px"});
+  inDesc.value = t.description || "";
+  const row = el("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:8px"});
+  const inDue  = el("input",{type:"date", value:t.dueDate, style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  const inRec  = el("select",{style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  ["None","Daily","Weekly","Monthly"].forEach(opt=>{
+    const o = el("option",{text:opt}); if(opt===t.recurrence) o.selected = true; inRec.appendChild(o);
+  });
+  row.appendChild(inDue); row.appendChild(inRec);
+
+  const actions = el("div",{style:"display:flex;gap:8px;justify-content:flex-end;margin-top:6px"});
+  const save = el("button",{class:"btn primary", text:"Save"});
+  const cancel = el("button",{class:"btn", text:"Cancel"});
+  save.addEventListener("click", ()=>{
+    t.title = inTitle.value.trim();
+    t.description = inDesc.value.trim();
+    t.dueDate = inDue.value || t.dueDate;
+    t.recurrence = inRec.value || "None";
+    saveTasks(tasks); document.body.removeChild(overlay); render();
+  });
+  cancel.addEventListener("click", ()=>document.body.removeChild(overlay));
+
+  f.appendChild(inTitle); f.appendChild(inDesc); f.appendChild(row);
+  actions.appendChild(cancel); actions.appendChild(save);
+  card.appendChild(title); card.appendChild(f); card.appendChild(actions);
+  overlay.appendChild(card); document.body.appendChild(overlay);
+}
+
+/* ========= Events ========= */
+$("#addBtn").addEventListener("click", ()=>{
+  const title = $("#newTitle").value;
+  const desc  = $("#newDesc").value;
+  const due   = $("#newDue").value || fmtDate(today());
+  const rec   = $("#newRecurrence").value;
+
+  if(!title.trim()){ alert("Title is required"); return; }
+  tasks.push(newTaskObj({title, description:desc, dueDate:due, recurrence:rec}));
+  saveTasks(tasks);
+  // reset title (and keep the rest if you like)
+  $("#newTitle").value = "";
+  $("#newDesc").value = "";
+  $("#newDue").value = "";
+  $("#newRecurrence").value = "None";
+  render();
+});
+
+// Tabs
+$$(".tab").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    $$(".tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const t = btn.getAttribute("data-tab");
+    if(t==="pending"){ $("#pendingTab").style.display="block"; $("#completedTab").style.display="none"; }
+    else { $("#pendingTab").style.display="none"; $("#completedTab").style.display="block"; }
+  });
+});
+
+/* ========= Init ========= */
+(function init(){
+  // default new due = today
+  $("#newDue").value = fmtDate(today());
+  render();
+})();
+</script>
+</body>
+</html>
