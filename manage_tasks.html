@@ -7,8 +7,7 @@
 <style>
   :root{
     --bg:#f6f7fb; --card:#fff; --muted:#6b7280; --border:#e5e7eb;
-    --overdue:#dc2626; --ok:#111827; --pill:#f9fafb; --pill-border:#e5e7eb;
-    --accent:#2563eb; --green:#16a34a;
+    --overdue:#dc2626; --pill:#f9fafb; --pill-border:#e5e7eb;
   }
   html,body{margin:0;padding:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
   .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
@@ -22,7 +21,7 @@
   .title.overdue{color:var(--overdue);font-weight:700}
   .desc{max-height:62px;overflow:auto;border:1px dashed var(--border);border-radius:8px;padding:6px;font-size:.9rem;color:#374151;white-space:pre-wrap}
   .new-form{display:grid;grid-template-columns:2fr 3fr 1.6fr 1fr .9fr;gap:8px}
-  .new-form input, .new-form select{padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+  .new-form input,.new-form select{padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
   .btn{padding:6px 10px;border:1px solid var(--border);background:var(--card);border-radius:8px;cursor:pointer}
   .btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
   .btn.primary{background:#1f2937;color:#fff;border-color:#1f2937}
@@ -36,7 +35,7 @@
   .icon-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer}
   .icon-btn:hover{box-shadow:0 1px 6px rgba(15,23,42,.08)}
   .actions{display:flex;gap:6px;justify-content:flex-end}
-  .completed .title{color:var(--muted);text-decoration:line-through}
+  .completed .title{text-decoration:line-through;color:var(--muted)}
   .footer-note{margin-top:14px}
   @media (max-width:980px){
     .columns{grid-template-columns:1.4fr 2fr 1.2fr .8fr .8fr .8fr}
@@ -81,7 +80,7 @@
   <!-- Pending / Completed containers -->
   <div id="pendingTab">
     <div class="grid-2">
-      <div class="section" id="leftCol">
+      <div class="section">
         <h3>📅 Due Today</h3>
         <div id="today"></div>
 
@@ -92,7 +91,7 @@
         <div class="sub" id="weekDays"></div>
       </div>
 
-      <div class="section" id="rightCol">
+      <div class="section">
         <h3>⏰ Overdue</h3>
         <div id="overdue"></div>
 
@@ -114,29 +113,32 @@
 
 <script>
 /* ========= Utilities ========= */
-const lsKey = "taskmgr.tasks.v1";
+const lsKey = "taskmgr.tasks.v2";
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 
-// Format local Date -> yyyy-mm-dd (local)
-const fmtDate = d => {
+// Local "today" as Date at local midnight
+function todayDate() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
+
+// Date -> yyyy-mm-dd (local)
+function fmtDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,"0");
   const da = String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${da}`;
-};
+}
 
-// Parse yyyy-mm-dd as **LOCAL** date (not UTC!)
+// Parse yyyy-mm-dd to local Date (no timezone tricks)
 function parseLocalDate(iso){
   if(!iso) return new Date(NaN);
   const [y,m,d] = iso.split("-").map(n=>parseInt(n,10));
-  return new Date(y, (m||1)-1, d||1); // local midnight
+  return new Date(y, (m||1)-1, d||1);
 }
 
-const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
-const weekEndSunday = (base) => { const wd = base.getDay(); const delta = 6 - wd; return addDays(base, delta < 0 ? 0 : delta); };
-const isSameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 function addMonths(d, n=1){
   const nd = new Date(d);
@@ -147,6 +149,13 @@ function addMonths(d, n=1){
   nd.setDate(clamp(day,1,last));
   return nd;
 }
+function weekEndSaturday(base){
+  // JS Sunday=0..Saturday=6; end of "work week" as Saturday
+  const wd = base.getDay();
+  const delta = 6 - wd;
+  return addDays(base, delta < 0 ? 0 : delta);
+}
+
 function nextDue(currentISO, rec){
   const d = parseLocalDate(currentISO);
   if(rec==="Daily")  return fmtDate(addDays(d,1));
@@ -167,7 +176,7 @@ function newTaskObj({title, description, dueDate, recurrence}){
     id: crypto.randomUUID(),
     title: title.trim(),
     description: (description||"").trim(),
-    dueDate, // yyyy-mm-dd
+    dueDate,            // yyyy-mm-dd
     createdAt: now.toISOString(),
     completed: false,
     completedAt: null,
@@ -178,7 +187,7 @@ function newTaskObj({title, description, dueDate, recurrence}){
 /* ========= State ========= */
 let tasks = loadTasks();
 
-/* ========= Rendering ========= */
+/* ========= DOM helpers ========= */
 function el(tag, opts={}, children=[]){
   const node = document.createElement(tag);
   Object.entries(opts).forEach(([k,v])=>{
@@ -193,26 +202,32 @@ function el(tag, opts={}, children=[]){
   return node;
 }
 
+/* ========= Row rendering ========= */
 function taskRow(t){
-  const dueD = parseLocalDate(t.dueDate);
-  const overdue = dueD < today();
-  const titleDiv = el("div", {class: "title"+(overdue ? " overdue": ""), text: t.title || "(untitled)"});
+  const todayISO = fmtDate(todayDate());
+  const overdue = t.dueDate < todayISO;
 
-  const desc = (t.description || "").trim() || "—";
-  const descDiv = el("div", {class:"desc"}); descDiv.textContent = desc;
+  const titleDiv = el("div", {
+    class: "title" + (overdue ? " overdue" : ""),
+    text: t.title || "(untitled)"
+  });
+
+  const descText = (t.description || "").trim() || "—";
+  const descDiv = el("div", {class:"desc"});
+  descDiv.textContent = descText;
 
   const dueInput = el("input", {type:"date", value:t.dueDate, title:"Change due date"});
   dueInput.addEventListener("change", () => {
-    t.dueDate = dueInput.value;
+    t.dueDate = dueInput.value || t.dueDate;
     saveTasks(tasks);
-    render(); // regroup immediately
+    render(); // regroup
   });
 
   const rec = ["None","Daily","Weekly","Monthly"].includes(t.recurrence) ? t.recurrence : "None";
   const recPill = el("span", {class:"pill", text: rec==="None" ? "None" : rec});
 
-  const actionComplete = el("button",{class:"icon-btn", title:"Mark complete"}, [document.createTextNode("✔")]);
-  actionComplete.addEventListener("click", ()=>{
+  const btnComplete = el("button",{class:"icon-btn", title:"Mark complete"},[document.createTextNode("✔")]);
+  btnComplete.addEventListener("click", ()=>{
     if(t.completed) return;
     t.completed = true;
     t.completedAt = new Date().toISOString();
@@ -225,26 +240,32 @@ function taskRow(t){
       });
       tasks.push(next);
     }
-    saveTasks(tasks); render();
+    saveTasks(tasks);
+    render();
   });
 
-  const actionEdit = el("button",{class:"icon-btn", title:"Edit task (title/description/recurrence)"}, [document.createTextNode("✏")]);
-  actionEdit.addEventListener("click", ()=> openEditDialog(t));
+  const btnEdit = el("button",{class:"icon-btn", title:"Edit task"},[document.createTextNode("✏")]);
+  btnEdit.addEventListener("click", ()=>openEditDialog(t));
 
-  const actionDelete = el("button",{class:"icon-btn", title:"Delete task"}, [document.createTextNode("🗑")]);
-  actionDelete.addEventListener("click", ()=>{
-    if(confirm("Delete this task?")) {
+  const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
+  btnDelete.addEventListener("click", ()=>{
+    if(confirm("Delete this task?")){
       tasks = tasks.filter(x=>x.id!==t.id);
-      saveTasks(tasks); render();
+      saveTasks(tasks);
+      render();
     }
   });
 
-  const actions = el("div",{class:"actions"}, [actionComplete, actionEdit, actionDelete]);
+  const actions = el("div",{class:"actions"},[btnComplete, btnEdit, btnDelete]);
 
-  const row = el("div",{class:"row-card columns"+(t.completed?" completed":"")}, [
-    titleDiv, descDiv, el("div",{},[dueInput]), el("div",{},[recPill]), actions
+  const row = el("div",{class:"row-card columns"+(t.completed?" completed":"")},[
+    titleDiv,
+    descDiv,
+    el("div",{},[dueInput]),
+    el("div",{},[recPill]),
+    actions
   ]);
-  row.appendChild(el("div")); // spacer for grid symmetry
+  row.appendChild(el("div")); // spacer
   return row;
 }
 
@@ -259,36 +280,54 @@ function listHeader(){
   ]);
 }
 
-function renderSection(container, arr, emptyMsg="No tasks."){
+function renderSection(container, arr, emptyMsg){
   container.innerHTML = "";
-  if(arr.length===0){ container.appendChild(el("div",{class:"mini muted", text:emptyMsg})); return; }
+  if(!arr.length){
+    container.appendChild(el("div",{class:"mini muted", text:emptyMsg}));
+    return;
+  }
   container.appendChild(listHeader());
   arr.forEach(t => container.appendChild(taskRow(t)));
 }
 
-function renderWeekDays(container, map, startDate, endDate){
+/* ========= Weekday sub-sections ========= */
+function renderWeekDays(container, weekBuckets, todayISO, tomorrowISO, weekEndISO){
   container.innerHTML = "";
-  const base = today();
-  const tomorrow = addDays(base, 1);
-  for(let d = addDays(tomorrow,1); d <= endDate; d = addDays(d,1)){
-    const dayTasks = map[d.getDay()] || [];
-    const label = d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"});
-    container.appendChild(el("h4",{text: label}));
-    const box = el("div");
-    renderSection(box, dayTasks, `No tasks for ${label}.`);
-    container.appendChild(box);
+
+  // Show from day after tomorrow up to weekEndISO
+  let d = addDays(todayDate(), 2);
+  while (fmtDate(d) <= weekEndISO){
+    const iso = fmtDate(d);
+    // only show if it's not today or tomorrow (we already bucketed those)
+    if(iso > tomorrowISO && iso <= weekEndISO){
+      const wd = d.getDay();
+      const label = d.toLocaleDateString(undefined,
+        {weekday:"short", month:"short", day:"numeric"});
+      const dayTasks = weekBuckets[wd] || [];
+      container.appendChild(el("h4",{text:label}));
+      const box = el("div");
+      renderSection(box, dayTasks, `No tasks for ${label}.`);
+      container.appendChild(box);
+    }
+    d = addDays(d,1);
   }
 }
 
-function countsBadge(){
-  const base = today(), tom = addDays(base,1), end = weekEndSunday(base);
+/* ========= Counters ========= */
+function renderCounts(){
+  const base = todayDate();
+  const todayISO = fmtDate(base);
+  const tomorrowISO = fmtDate(addDays(base,1));
+  const weekEndISO = fmtDate(weekEndSaturday(base));
+
   const pending = tasks.filter(t=>!t.completed);
-  const cToday = pending.filter(t=>isSameDay(parseLocalDate(t.dueDate), base)).length;
-  const cTom = pending.filter(t=>isSameDay(parseLocalDate(t.dueDate), tom)).length;
-  const cWeek = pending.filter(t=>{ const d=parseLocalDate(t.dueDate); return d>tom && d<=end; }).length;
-  const cOver = pending.filter(t=>parseLocalDate(t.dueDate)<base).length;
-  const cFut = pending.filter(t=>parseLocalDate(t.dueDate)>end).length;
-  const cDone = tasks.filter(t=>t.completed).length;
+  const cToday = pending.filter(t=>t.dueDate===todayISO).length;
+  const cTom   = pending.filter(t=>t.dueDate===tomorrowISO).length;
+  const cWeek  = pending.filter(t=>t.dueDate>tomorrowISO && t.dueDate<=weekEndISO).length;
+  const cOver  = pending.filter(t=>t.dueDate<todayISO).length;
+  const cFut   = pending.filter(t=>t.dueDate>weekEndISO).length;
+  const cDone  = tasks.filter(t=>t.completed).length;
+
   $("#counts").innerHTML = `
     <span class="pill">Today: ${cToday}</span>
     <span class="pill">Tomorrow: ${cTom}</span>
@@ -299,14 +338,16 @@ function countsBadge(){
   `;
 }
 
+/* ========= Main render ========= */
 function render(){
-  // sort tasks by due date string (yyyy-mm-dd)
   tasks.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-  countsBadge();
 
-  const base = today();
-  const tom = addDays(base,1);
-  const end = weekEndSunday(base);
+  const base = todayDate();
+  const todayISO = fmtDate(base);
+  const tomorrowISO = fmtDate(addDays(base,1));
+  const weekEndISO = fmtDate(weekEndSaturday(base));
+
+  renderCounts();
 
   const pending = tasks.filter(t=>!t.completed);
   const buckets = {
@@ -318,39 +359,39 @@ function render(){
   };
 
   pending.forEach(t=>{
-    const d = parseLocalDate(t.dueDate);
-    if(d < base) buckets.overdue.push(t);
-    else if(isSameDay(d, base)) buckets.today.push(t);
-    else if(isSameDay(d, tom)) buckets.tomorrow.push(t);
-    else if(d > tom && d <= end) buckets.weekMap[d.getDay()].push(t);
-    else if(d > end) buckets.future.push(t);
+    const iso = t.dueDate;
+    if(iso < todayISO) buckets.overdue.push(t);
+    else if(iso === todayISO) buckets.today.push(t);
+    else if(iso === tomorrowISO) buckets.tomorrow.push(t);
+    else if(iso > tomorrowISO && iso <= weekEndISO){
+      const dObj = parseLocalDate(iso);
+      buckets.weekMap[dObj.getDay()].push(t);
+    } else if(iso > weekEndISO){
+      buckets.future.push(t);
+    }
   });
 
-  // sort each bucket
   ["overdue","today","tomorrow","future"].forEach(k=>{
     buckets[k].sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   });
   Object.values(buckets.weekMap).forEach(arr=>arr.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)));
 
-  // render left column
   renderSection($("#today"), buckets.today, "No tasks today.");
   renderSection($("#tomorrow"), buckets.tomorrow, "No tasks tomorrow.");
-  renderWeekDays($("#weekDays"), buckets.weekMap, addDays(tom,1), end);
-
-  // right column
+  renderWeekDays($("#weekDays"), buckets.weekMap, todayISO, tomorrowISO, weekEndISO);
   renderSection($("#overdue"), buckets.overdue, "No overdue tasks 🎉");
   renderSection($("#future"), buckets.future, "No future tasks 🎉");
 
-  // completed tab
   renderCompleted();
 }
 
+/* ========= Completed ========= */
 function renderCompleted(){
   const cont = $("#completedList");
   cont.innerHTML = "";
 
   const done = tasks.filter(t=>t.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-  if(done.length===0){
+  if(!done.length){
     cont.appendChild(el("div",{class:"mini muted", text:"No completed tasks yet."}));
     return;
   }
@@ -365,68 +406,89 @@ function renderCompleted(){
 
     const btnRestore = el("button",{class:"icon-btn", title:"Restore to pending"},[document.createTextNode("🔁")]);
     btnRestore.addEventListener("click", ()=>{
-      t.completed = false; t.completedAt = null; saveTasks(tasks); render();
+      t.completed = false;
+      t.completedAt = null;
+      saveTasks(tasks);
+      render();
     });
+
     const btnDelete = el("button",{class:"icon-btn", title:"Delete task"},[document.createTextNode("🗑")]);
     btnDelete.addEventListener("click", ()=>{
       if(confirm("Delete this task?")){
-        tasks = tasks.filter(x=>x.id!==t.id); saveTasks(tasks); render();
+        tasks = tasks.filter(x=>x.id!==t.id);
+        saveTasks(tasks);
+        render();
       }
     });
 
-    const actionsWrap = el("div",{class:"actions"},[btnRestore, btnDelete]);
-    row.appendChild(actionsWrap);
-    row.appendChild(el("div"));
+    const actions = el("div",{class:"actions"},[btnRestore, btnDelete]);
+    row.appendChild(actions);
+    row.appendChild(el("div")); // spacer
     cont.appendChild(row);
   });
 }
 
-/* ========= Edit Dialog ========= */
+/* ========= Edit dialog ========= */
 function openEditDialog(t){
   const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:50"});
   const card = el("div",{style:"background:#fff;border:1px solid #e5e7eb;border-radius:12px;max-width:560px;width:92%;padding:16px;box-shadow:0 8px 40px rgba(0,0,0,.15)"});
   const title = el("h3",{text:"Edit Task"});
-  const f = el("div",{style:"display:grid;grid-template-columns:1fr;gap:8px"});
+  const form = el("div",{style:"display:grid;grid-template-columns:1fr;gap:8px"});
+
   const inTitle = el("input",{type:"text", value:t.title, placeholder:"Title", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
-  const inDesc  = el("textarea",{placeholder:"Description", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px;min-height:90px"});
+  const inDesc = el("textarea",{placeholder:"Description", style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px;min-height:90px"});
   inDesc.value = t.description || "";
+
   const row = el("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:8px"});
-  const inDue  = el("input",{type:"date", value:t.dueDate, style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
-  const inRec  = el("select",{style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  const inDue = el("input",{type:"date", value:t.dueDate, style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
+  const inRec = el("select",{style:"padding:8px;border:1px solid #e5e7eb;border-radius:8px"});
   ["None","Daily","Weekly","Monthly"].forEach(opt=>{
-    const o = el("option",{text:opt}); if(opt===t.recurrence) o.selected = true; inRec.appendChild(o);
+    const o = el("option",{text:opt});
+    if(opt===t.recurrence) o.selected = true;
+    inRec.appendChild(o);
   });
-  row.appendChild(inDue); row.appendChild(inRec);
+  row.appendChild(inDue);
+  row.appendChild(inRec);
 
   const actions = el("div",{style:"display:flex;gap:8px;justify-content:flex-end;margin-top:6px"});
-  const save = el("button",{class:"btn primary", text:"Save"});
-  const cancel = el("button",{class:"btn", text:"Cancel"});
-  save.addEventListener("click", ()=>{
+  const btnSave = el("button",{class:"btn primary", text:"Save"});
+  const btnCancel = el("button",{class:"btn", text:"Cancel"});
+
+  btnSave.addEventListener("click", ()=>{
     t.title = inTitle.value.trim();
     t.description = inDesc.value.trim();
     t.dueDate = inDue.value || t.dueDate;
     t.recurrence = inRec.value || "None";
-    saveTasks(tasks); document.body.removeChild(overlay); render();
+    saveTasks(tasks);
+    document.body.removeChild(overlay);
+    render();
   });
-  cancel.addEventListener("click", ()=>document.body.removeChild(overlay));
+  btnCancel.addEventListener("click", ()=>document.body.removeChild(overlay));
 
-  f.appendChild(inTitle); f.appendChild(inDesc); f.appendChild(row);
-  actions.appendChild(cancel); actions.appendChild(save);
-  card.appendChild(title); card.appendChild(f); card.appendChild(actions);
-  overlay.appendChild(card); document.body.appendChild(overlay);
+  form.appendChild(inTitle);
+  form.appendChild(inDesc);
+  form.appendChild(row);
+  actions.appendChild(btnCancel);
+  actions.appendChild(btnSave);
+  card.appendChild(title);
+  card.appendChild(form);
+  card.appendChild(actions);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
 }
 
 /* ========= Events ========= */
 $("#addBtn").addEventListener("click", ()=>{
   const title = $("#newTitle").value;
   const desc  = $("#newDesc").value;
-  const due   = $("#newDue").value || fmtDate(today());
+  const due   = $("#newDue").value || fmtDate(todayDate());
   const rec   = $("#newRecurrence").value;
 
   if(!title.trim()){ alert("Title is required"); return; }
+
   tasks.push(newTaskObj({title, description:desc, dueDate:due, recurrence:rec}));
   saveTasks(tasks);
-  // reset
+
   $("#newTitle").value = "";
   $("#newDesc").value = "";
   $("#newDue").value = "";
@@ -440,14 +502,19 @@ $$(".tab").forEach(btn=>{
     $$(".tab").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     const t = btn.getAttribute("data-tab");
-    if(t==="pending"){ $("#pendingTab").style.display="block"; $("#completedTab").style.display="none"; }
-    else { $("#pendingTab").style.display="none"; $("#completedTab").style.display="block"; }
+    if(t==="pending"){
+      $("#pendingTab").style.display = "block";
+      $("#completedTab").style.display = "none";
+    } else {
+      $("#pendingTab").style.display = "none";
+      $("#completedTab").style.display = "block";
+    }
   });
 });
 
 /* ========= Init ========= */
 (function init(){
-  $("#newDue").value = fmtDate(today()); // default due = today
+  $("#newDue").value = fmtDate(todayDate());
   render();
 })();
 </script>
