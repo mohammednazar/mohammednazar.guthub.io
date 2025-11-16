@@ -148,25 +148,31 @@
           // Auth handlers
           firebase.auth().onAuthStateChanged(async user => {
             if (user) {
+              // SIGNED IN: Firestore mode
               this.userId = user.uid;
               this.mode = 'firestore';
               setMode('Firestore', true);
               qs('#btn-signout').style.display = '';
               qs('#auth-status').innerHTML = `<span>Signed in as: ${user.email}</span>`;
 
-              // NEW: if Firestore is empty for this user, copy localStorage data into it
-              await this.migrateLocalToFirestoreIfEmpty();
+              // Sync local -> Firestore so both match on this device
+              try {
+                await this.syncLocalToFirestoreReplace();
+              } catch (e) {
+                console.warn('syncLocalToFirestoreReplace failed:', e);
+              }
 
               // Now load from Firestore
               App.load();
             } else {
-              this.userId = null;
+              // SIGNED OUT: Local mode
               this.mode = 'local';
+              this.userId = null;
               setMode('LocalStorage (Safe Mode)', false);
               qs('#btn-signout').style.display = 'none';
               qs('#auth-status').innerHTML = '';
 
-              // Signed out: fall back to localStorage
+              // Load from localStorage (which we synced on sign-out)
               App.load();
             }
           });
@@ -184,10 +190,22 @@
             try { await firebase.auth().signInWithEmailAndPassword(email, password); }
             catch(err) { showError('SignIn: ' + err.message); }
           };
-          qs('#btn-signout').onclick = async () => { await firebase.auth().signOut(); };
+
+          // IMPORTANT: on signout, first sync Firestore -> local, then sign out
+          qs('#btn-signout').onclick = async () => {
+            try {
+              if (this.mode === 'firestore' && this.userId) {
+                await this.syncFirestoreToLocalReplace();
+              }
+              await firebase.auth().signOut();
+            } catch(err) {
+              showError('SignOut: ' + err.message);
+            }
+          };
 
         } catch (err) {
-          // Firebase not available: local mode
+          // Firebase not available: local mode only
+          console.warn('Firebase init failed, using localStorage only:', err);
           this.mode = 'local';
           setMode('LocalStorage (Safe Mode)', false);
           qs('#btn-signout').style.display = 'none';
@@ -196,19 +214,11 @@
         }
       },
 
-      // NEW: migrate localStorage data into Firestore once, if Firestore is empty
-      async migrateLocalToFirestoreIfEmpty() {
-        if (this.mode !== 'firestore' || !this.userId || !this.db) return;
+      // ----- SYNC HELPERS -----
+      // Take what's in localStorage and REPLACE Firestore for this user
+      async syncLocalToFirestoreReplace() {
+        if (!this.db || !this.userId) return;
 
-        const ref = this.db.collection('users').doc(this.userId).collection('expenses');
-
-        // Check if Firestore already has any data
-        const existingSnap = await ref.limit(1).get();
-        if (!existingSnap.empty) {
-          return; // already has data, don't overwrite
-        }
-
-        // Read from localStorage
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return;
 
@@ -216,9 +226,18 @@
         try {
           arr = JSON.parse(raw) || [];
         } catch (e) {
-          console.warn('Could not parse localStorage expenses', e);
+          console.warn('Could not parse localStorage in syncLocalToFirestoreReplace', e);
           return;
         }
+
+        const ref = this.db.collection('users').doc(this.userId).collection('expenses');
+
+        // Clear Firestore first
+        const existingSnap = await ref.get();
+        const delBatch = this.db.batch();
+        existingSnap.forEach(doc => delBatch.delete(doc.ref));
+        await delBatch.commit();
+
         if (!arr.length) return;
 
         const batch = this.db.batch();
@@ -234,10 +253,32 @@
           });
         });
         await batch.commit();
-        console.log(`Migrated ${arr.length} local expenses to Firestore for user ${this.userId}`);
+        console.log(`syncLocalToFirestoreReplace: pushed ${arr.length} records to Firestore`);
       },
 
-      // CRUD
+      // Take what's in Firestore and REPLACE localStorage
+      async syncFirestoreToLocalReplace() {
+        if (!this.db || !this.userId) return;
+
+        const ref = this.db.collection('users').doc(this.userId).collection('expenses');
+        const snap = await ref.orderBy('order').get();
+        const arr = snap.docs.map((d, idx) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: data.name || '',
+            amount: data.amount || '',
+            paid: data.paid || 'no',
+            dueDate: data.dueDate || '',
+            order: data.order ?? idx
+          };
+        });
+
+        localStorage.setItem(LS_KEY, JSON.stringify(arr));
+        console.log(`syncFirestoreToLocalReplace: saved ${arr.length} records to localStorage`);
+      },
+
+      // ---------- CRUD ----------
       async list() {
         if (this.mode === 'firestore' && this.userId) {
           const ref = this.db.collection('users').doc(this.userId).collection('expenses');
@@ -246,10 +287,10 @@
         } else {
           const raw = localStorage.getItem(LS_KEY);
           const arr = raw ? JSON.parse(raw) : [];
-          // ensure order field continuity
           return arr.sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
         }
       },
+
       async save(record) {
         // record: {id?, name, amount, paid, dueDate, order}
         if (this.mode === 'firestore' && this.userId) {
@@ -276,6 +317,7 @@
           return record.id;
         }
       },
+
       async remove(id) {
         if (!id) return;
         if (this.mode === 'firestore' && this.userId) {
@@ -287,6 +329,7 @@
           localStorage.setItem(LS_KEY, JSON.stringify(fil));
         }
       },
+
       async replaceAll(records) {
         if (this.mode === 'firestore' && this.userId) {
           const ref = this.db.collection('users').doc(this.userId).collection('expenses');
@@ -357,14 +400,12 @@
         `;
         tbody.appendChild(tr);
 
-        // Listeners
         const docId = tr.getAttribute('data-id');
         tr.querySelectorAll('input, select').forEach(inp => {
           inp.addEventListener('input', () => { App.saveRow(tr, docId); App.calculateTotals(); });
           inp.addEventListener('change', () => { App.saveRow(tr, docId); App.calculateTotals(); });
         });
 
-        // Drag
         this.setupDrag(tr);
       },
 
@@ -418,9 +459,7 @@
 
       async renumberAndPersist() {
         const rows = qsa('#expenses-table tbody tr');
-        // Update S.No
         rows.forEach((r, i) => { r.querySelector('td.sn').textContent = String(i+1); });
-        // Persist order + other fields
         for (const r of rows) {
           await this.saveRow(r, r.getAttribute('data-id'));
         }
@@ -464,6 +503,7 @@
         });
         return Array.from(out).sort((x,y)=>x-y);
       },
+
       calcRangeUnpaid() {
         const expr = qs('#range-input').value;
         const serials = this.parseSerialExpr(expr);
@@ -549,7 +589,6 @@
             const paid   = ((hasSN ? paidMaybe : r[2]) || '').toString().toLowerCase()==='yes' ? 'yes' : 'no';
             const due    = hasSN ? dueMaybe : r[3];
 
-            // find existing by name
             let matched = null;
             qsa('#expenses-table tbody tr').forEach(row => {
               const val = row.cells[1].querySelector('input').value.trim().toLowerCase();
@@ -580,8 +619,10 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-      // buttons
-      qs('#btn-add-row').onclick = () => App.addRow({ id:String(Date.now()), name:'', amount:'', paid:'no', dueDate:'', order:qsa('#expenses-table tbody tr').length });
+      qs('#btn-add-row').onclick = () => App.addRow({
+        id:String(Date.now()),
+        name:'', amount:'', paid:'no', dueDate:'', order:qsa('#expenses-table tbody tr').length
+      });
       qs('#btn-calc-range').onclick = () => App.calcRangeUnpaid();
       qs('#range-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') App.calcRangeUnpaid(); });
       qs('#btn-export').onclick = () => App.exportToExcel();
@@ -593,7 +634,6 @@
       Storage.init();
     });
 
-    // expose App for inline row buttons
     window.App = App;
   </script>
 </body>
