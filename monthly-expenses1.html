@@ -146,21 +146,28 @@
           this.db = firebase.firestore();
 
           // Auth handlers
-          firebase.auth().onAuthStateChanged(user => {
+          firebase.auth().onAuthStateChanged(async user => {
             if (user) {
               this.userId = user.uid;
               this.mode = 'firestore';
               setMode('Firestore', true);
               qs('#btn-signout').style.display = '';
               qs('#auth-status').innerHTML = `<span>Signed in as: ${user.email}</span>`;
-              App.load(); // load from Firestore
+
+              // NEW: if Firestore is empty for this user, copy localStorage data into it
+              await this.migrateLocalToFirestoreIfEmpty();
+
+              // Now load from Firestore
+              App.load();
             } else {
               this.userId = null;
               this.mode = 'local';
               setMode('LocalStorage (Safe Mode)', false);
               qs('#btn-signout').style.display = 'none';
               qs('#auth-status').innerHTML = '';
-              App.load(); // load from local
+
+              // Signed out: fall back to localStorage
+              App.load();
             }
           });
 
@@ -187,6 +194,47 @@
           qs('#auth-status').innerHTML = '';
           App.load(); // load from local
         }
+      },
+
+      // NEW: migrate localStorage data into Firestore once, if Firestore is empty
+      async migrateLocalToFirestoreIfEmpty() {
+        if (this.mode !== 'firestore' || !this.userId || !this.db) return;
+
+        const ref = this.db.collection('users').doc(this.userId).collection('expenses');
+
+        // Check if Firestore already has any data
+        const existingSnap = await ref.limit(1).get();
+        if (!existingSnap.empty) {
+          return; // already has data, don't overwrite
+        }
+
+        // Read from localStorage
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return;
+
+        let arr = [];
+        try {
+          arr = JSON.parse(raw) || [];
+        } catch (e) {
+          console.warn('Could not parse localStorage expenses', e);
+          return;
+        }
+        if (!arr.length) return;
+
+        const batch = this.db.batch();
+        arr.forEach((r, idx) => {
+          const id = r.id || (String(Date.now()) + '_' + idx);
+          const dref = ref.doc(id);
+          batch.set(dref, {
+            name: r.name || '',
+            amount: r.amount || '',
+            paid: r.paid || 'no',
+            dueDate: r.dueDate || '',
+            order: r.order ?? idx
+          });
+        });
+        await batch.commit();
+        console.log(`Migrated ${arr.length} local expenses to Firestore for user ${this.userId}`);
       },
 
       // CRUD
