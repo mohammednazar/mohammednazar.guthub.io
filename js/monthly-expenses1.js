@@ -1,9 +1,9 @@
-const DEFAULT_EXPENSES = [
-  'Alectra', 'Enbridge', 'Water', 'Property Tax', 'CIBC CC', 'MBNA CC',
-  'Tangerine CC', 'CT CC', 'CIBC Rida', 'CIBC LOC', 'Tangerine LOC',
-  'CIBC LOC Sabi', 'Tangerine LOC Sabi', 'Afrida Insurance', 'H&A Insurance',
-  'Sabi RRSP', 'Home Loan', 'Cash'
-];
+    const DEFAULT_EXPENSES = [
+      'Alectra','Enbridge','Water','Property Tax','Rogers CC', 'CT CC','CIBC CC','CIBC Rida', 'MBNA CC',
+      'Tangerine CC', 'CIBC LOC','Tangerine LOC',
+      'CIBC LOC Sabi','Tangerine LOC Sabi','Afrida Insurance','H&A Insurance',
+      'Sabi RRSP','Home Loan','Cash','Rida Rent'
+    ];
 
 window.onload = () => {
   loadExpenses();
