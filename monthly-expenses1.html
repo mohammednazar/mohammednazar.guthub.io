@@ -4,87 +4,621 @@
   <meta charset="UTF-8" />
   <title>Monthly Expenses Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
-
   <!-- XLSX for import/export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-
   <!-- Firebase SDKs (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js" defer></script>
-
   <style>
-    .row-actions { display:flex; gap:.25rem }
-    .row-actions button { padding:2px 6px }
-    #range-tools { display:flex; align-items:center; gap:.5rem; margin:12px 0; flex-wrap:wrap }
-    #range-tools input { width: 280px }
-    #range-total { font-weight:600 }
-    td.sn, th.sn { text-align:center; width:64px }
-    tr.dragging { opacity:.5 }
-    #defaults-buttons { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:8px }
-    #errbox { display:none; background:#fee; color:#900; border:1px solid #c66; padding:8px; margin:12px 0; border-radius:6px; white-space:pre-wrap }
-    #modebox { background:#eef7ff; color:#044; border:1px solid #9bd; padding:6px 8px; border-radius:6px; display:inline-block; margin-top:8px }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.85rem; margin-left:6px }
-    .pill.ok { background:#e6ffed; color:#055 }
-    .pill.warn { background:#fff5e6; color:#653 }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --danger: #ef4444;
+      --danger-light: #fee2e2;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--gray-800);
+      line-height: 1.6;
+    }
+    
+    /* Header Styles */
+    header {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-xl);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    h1::before {
+      content: "💰";
+      font-size: 2.5rem;
+    }
+    
+    nav {
+      margin-bottom: 24px;
+    }
+    
+    nav a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      display: inline-block;
+    }
+    
+    nav a:hover {
+      background: var(--primary-light);
+      transform: translateY(-2px);
+    }
+    
+    /* Auth Section */
+    #auth-buttons {
+      display: grid;
+      gap: 16px;
+      background: var(--gray-50);
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid var(--gray-200);
+    }
+    
+    .auth-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      padding: 12px 16px;
+      border: 2px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    
+    input[type="email"],
+    input[type="password"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    button, .button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+      background: var(--primary);
+      color: white;
+    }
+    
+    button:hover, .button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      background: var(--primary-dark);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    #btn-signup, #btn-signin {
+      background: var(--primary);
+    }
+    
+    #btn-signout {
+      background: var(--danger);
+    }
+    
+    #btn-signout:hover {
+      background: #dc2626;
+    }
+    
+    #btn-export {
+      background: var(--success);
+    }
+    
+    #btn-export:hover {
+      background: #059669;
+    }
+    
+    #btn-import {
+      background: var(--warning);
+    }
+    
+    #btn-import:hover {
+      background: #d97706;
+    }
+    
+    input[type="file"] {
+      padding: 8px;
+      border: 2px dashed var(--gray-300);
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    
+    #defaults-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    
+    #defaults-buttons button {
+      background: var(--gray-600);
+      font-size: 13px;
+      padding: 10px 20px;
+    }
+    
+    #defaults-buttons button:hover {
+      background: var(--gray-700);
+    }
+    
+    /* Status Boxes */
+    #modebox {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #e0e7ff 100%);
+      color: var(--primary-dark);
+      border: 2px solid var(--primary);
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+    
+    #modebox::before {
+      content: "🔄";
+      font-size: 1.2rem;
+    }
+    
+    #auth-status {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: var(--success-light);
+      border-radius: 8px;
+      color: #065f46;
+      font-weight: 600;
+      display: none;
+    }
+    
+    #auth-status:not(:empty) {
+      display: block;
+    }
+    
+    #auth-status::before {
+      content: "✓ ";
+      font-size: 1.2rem;
+    }
+    
+    #errbox {
+      display: none;
+      background: var(--danger-light);
+      color: #991b1b;
+      border: 2px solid var(--danger);
+      padding: 16px;
+      margin: 16px 0;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      font-weight: 500;
+    }
+    
+    #errbox::before {
+      content: "⚠️ ";
+      font-size: 1.2rem;
+    }
+    
+    .pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .pill.ok {
+      background: var(--success-light);
+      color: #065f46;
+    }
+    
+    .pill.warn {
+      background: var(--warning-light);
+      color: #92400e;
+    }
+    
+    /* Main Content */
+    main {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: var(--shadow-xl);
+    }
+    
+    #btn-add-row {
+      background: var(--success);
+      font-size: 16px;
+      padding: 14px 28px;
+      margin-bottom: 24px;
+    }
+    
+    #btn-add-row:hover {
+      background: #059669;
+    }
+    
+    #btn-add-row::before {
+      content: "+ ";
+      font-size: 1.2rem;
+    }
+    
+    /* Range Calculator */
+    #range-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+      padding: 20px;
+      background: var(--gray-50);
+      border-radius: 12px;
+      border: 2px solid var(--gray-200);
+    }
+    
+    #range-tools strong {
+      color: var(--gray-700);
+    }
+    
+    #range-input {
+      flex: 1;
+      min-width: 280px;
+    }
+    
+    #btn-calc-range {
+      background: var(--primary);
+    }
+    
+    #range-total {
+      font-weight: 700;
+      color: var(--primary);
+      padding: 8px 16px;
+      background: var(--primary-light);
+      border-radius: 8px;
+    }
+    
+    /* Table Styles */
+    #expenses-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 24px;
+      box-shadow: var(--shadow-md);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    #expenses-table thead {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+    }
+    
+    #expenses-table th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #expenses-table tbody tr {
+      background: white;
+      transition: all 0.3s ease;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    #expenses-table tbody tr:hover {
+      background: var(--gray-50);
+      transform: scale(1.01);
+      box-shadow: var(--shadow);
+    }
+    
+    #expenses-table tbody tr.dragging {
+      opacity: 0.5;
+      background: var(--primary-light);
+    }
+    
+    #expenses-table td {
+      padding: 16px;
+      vertical-align: middle;
+    }
+    
+    td.sn, th.sn {
+      text-align: center;
+      width: 64px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    #expenses-table tbody td input,
+    #expenses-table tbody td select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--gray-300);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    #expenses-table tbody td select {
+      cursor: pointer;
+      background: white;
+    }
+    
+    /* Table Footer */
+    #expenses-table tfoot {
+      background: var(--gray-100);
+      font-weight: 700;
+      border-top: 3px solid var(--primary);
+    }
+    
+    #expenses-table tfoot td {
+      padding: 20px 16px;
+      font-size: 15px;
+    }
+    
+    #total-amount {
+      color: var(--primary);
+      font-size: 18px;
+    }
+    
+    #total-paid {
+      color: var(--success);
+      font-size: 16px;
+    }
+    
+    #total-unpaid {
+      color: var(--danger);
+      font-size: 16px;
+    }
+    
+    /* Row Actions */
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    
+    .row-actions button {
+      padding: 8px 12px;
+      font-size: 12px;
+      min-width: auto;
+    }
+    
+    .row-actions button:nth-child(1),
+    .row-actions button:nth-child(2) {
+      background: var(--gray-600);
+      padding: 6px 10px;
+      font-size: 16px;
+    }
+    
+    .row-actions button:nth-child(3) {
+      background: var(--danger);
+    }
+    
+    .row-actions button:hover {
+      transform: scale(1.1);
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+      
+      header, main {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      #auth-buttons {
+        padding: 16px;
+      }
+      
+      .auth-row {
+        flex-direction: column;
+      }
+      
+      button, .button {
+        width: 100%;
+      }
+      
+      #expenses-table {
+        font-size: 12px;
+      }
+      
+      #expenses-table th,
+      #expenses-table td {
+        padding: 10px 8px;
+      }
+      
+      #range-tools {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      #range-input {
+        width: 100%;
+      }
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    header, main {
+      animation: fadeIn 0.6s ease-out;
+    }
+    
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--gray-100);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-dark);
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Monthly Expenses Tracker</h1>
-    <nav><a href="index.html">Home</a></nav>
-
+    <nav><a href="index.html">🏠 Home</a></nav>
     <div id="auth-buttons">
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <button id="btn-signup">Sign Up</button>
-      <button id="btn-signin">Sign In</button>
-      <button id="btn-signout" style="display:none">Sign Out</button>
-
-      <button class="button" id="btn-export">Export to Excel</button>
-      <input type="file" id="excel-file" accept=".xlsx, .xls" />
-      <button class="button" id="btn-import">Import from Excel</button>
-
+      <div class="auth-row">
+        <input type="email" id="email" placeholder="📧 Email Address" />
+        <input type="password" id="password" placeholder="🔒 Password" />
+        <button id="btn-signup">Sign Up</button>
+        <button id="btn-signin">Sign In</button>
+        <button id="btn-signout" style="display:none">Sign Out</button>
+      </div>
+      <div class="auth-row">
+        <button class="button" id="btn-export">📊 Export to Excel</button>
+        <input type="file" id="excel-file" accept=".xlsx, .xls" />
+        <button class="button" id="btn-import">📥 Import from Excel</button>
+      </div>
       <div id="defaults-buttons">
-        <button id="btn-add-missing">Add Missing Defaults</button>
-        <button id="btn-reset-defaults">Reset to Defaults (replace all)</button>
+        <button id="btn-add-missing">➕ Add Missing Defaults</button>
+        <button id="btn-reset-defaults">🔄 Reset to Defaults</button>
       </div>
     </div>
-
     <div id="modebox">Mode: <span id="mode-text">Initializing…</span></div>
     <div id="auth-status"></div>
     <div id="errbox"></div>
   </header>
-
   <main>
     <div style="margin: 20px 0;">
       <button id="btn-add-row">Add New Expense</button>
     </div>
-
     <!-- Range total calculator -->
     <div id="range-tools">
-      <span><strong>Range total (Unpaid only):</strong></span>
+      <span><strong>📊 Range Total Calculator (Unpaid only):</strong></span>
       <input type="text" id="range-input" placeholder="e.g. 1-10 or 1,3,5 or 2-4,7,9-11" />
       <button type="button" id="btn-calc-range">Calculate</button>
       <span id="range-total"></span>
     </div>
-
     <table id="expenses-table">
       <thead>
         <tr>
           <th class="sn">S.No</th>
-          <th>Expense Type</th>
-          <th>Amount ($)</th>
-          <th>Paid?</th>
-          <th>Due Date</th>
-          <th>Actions</th>
+          <th>💼 Expense Type</th>
+          <th>💵 Amount ($)</th>
+          <th>✅ Paid?</th>
+          <th>📅 Due Date</th>
+          <th>⚙️ Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
       <tfoot>
         <tr>
-          <td><strong>Total</strong></td>
+          <td><strong>📊 Total</strong></td>
           <td id="total-amount">$0.00</td>
           <td id="total-paid">$0.00 Paid</td>
           <td id="total-unpaid">$0.00 Unpaid</td>
@@ -93,11 +627,9 @@
       </tfoot>
     </table>
   </main>
-
   <footer>
-    <p>© 2025 Monthly Expenses Tracker</p>
+    <p>© 2025 Monthly Expenses Tracker | Built with ❤️</p>
   </footer>
-
   <script>
     // ---------- CONSTANTS ----------
     const DEFAULT_EXPENSES = [
@@ -107,7 +639,6 @@
       'Sabi RRSP','Home Loan','Cash','Rida Rent'
     ];
     const LS_KEY = "expenses_local_fallback_v1";
-
     // ---------- UTILS ----------
     function showError(msg) {
       const box = document.getElementById('errbox');
@@ -122,18 +653,15 @@
     }
     function qs(sel, root=document){ return root.querySelector(sel); }
     function qsa(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-
     // ---------- STORAGE LAYER (Firestore or LocalStorage) ----------
     const Storage = {
       mode: 'unknown', // 'firestore' | 'local'
       userId: null,
       db: null,
-
       async init() {
         // Try Firebase first
         try {
           if (!window.firebase || !firebase.initializeApp) throw new Error("Firebase SDK not available");
-
           const firebaseConfig = {
             apiKey: "AIzaSyAyucu_sZz49xoEqGagrxvJ-erq2SJBpDM",
             authDomain: "expensetracker-f57ff.firebaseapp.com",
@@ -144,7 +672,6 @@
           };
           try { firebase.initializeApp(firebaseConfig); } catch(e) { /* ignore duplicate */ }
           this.db = firebase.firestore();
-
           // Auth handlers
           firebase.auth().onAuthStateChanged(async user => {
             if (user) {
@@ -154,14 +681,12 @@
               setMode('Firestore', true);
               qs('#btn-signout').style.display = '';
               qs('#auth-status').innerHTML = `<span>Signed in as: ${user.email}</span>`;
-
               // Sync local -> Firestore so both match on this device
               try {
                 await this.syncLocalToFirestoreReplace();
               } catch (e) {
                 console.warn('syncLocalToFirestoreReplace failed:', e);
               }
-
               // Now load from Firestore
               App.load();
             } else {
@@ -171,12 +696,10 @@
               setMode('LocalStorage (Safe Mode)', false);
               qs('#btn-signout').style.display = 'none';
               qs('#auth-status').innerHTML = '';
-
               // Load from localStorage (which we synced on sign-out)
               App.load();
             }
           });
-
           // wire auth buttons
           qs('#btn-signup').onclick = async () => {
             const email = qs('#email').value.trim();
@@ -190,7 +713,6 @@
             try { await firebase.auth().signInWithEmailAndPassword(email, password); }
             catch(err) { showError('SignIn: ' + err.message); }
           };
-
           // IMPORTANT: on signout, first sync Firestore -> local, then sign out
           qs('#btn-signout').onclick = async () => {
             try {
@@ -202,7 +724,6 @@
               showError('SignOut: ' + err.message);
             }
           };
-
         } catch (err) {
           // Firebase not available: local mode only
           console.warn('Firebase init failed, using localStorage only:', err);
@@ -213,15 +734,12 @@
           App.load(); // load from local
         }
       },
-
       // ----- SYNC HELPERS -----
       // Take what's in localStorage and REPLACE Firestore for this user
       async syncLocalToFirestoreReplace() {
         if (!this.db || !this.userId) return;
-
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return;
-
         let arr = [];
         try {
           arr = JSON.parse(raw) || [];
@@ -229,17 +747,13 @@
           console.warn('Could not parse localStorage in syncLocalToFirestoreReplace', e);
           return;
         }
-
         const ref = this.db.collection('users').doc(this.userId).collection('expenses');
-
         // Clear Firestore first
         const existingSnap = await ref.get();
         const delBatch = this.db.batch();
         existingSnap.forEach(doc => delBatch.delete(doc.ref));
         await delBatch.commit();
-
         if (!arr.length) return;
-
         const batch = this.db.batch();
         arr.forEach((r, idx) => {
           const id = r.id || (String(Date.now()) + '_' + idx);
@@ -255,11 +769,9 @@
         await batch.commit();
         console.log(`syncLocalToFirestoreReplace: pushed ${arr.length} records to Firestore`);
       },
-
       // Take what's in Firestore and REPLACE localStorage
       async syncFirestoreToLocalReplace() {
         if (!this.db || !this.userId) return;
-
         const ref = this.db.collection('users').doc(this.userId).collection('expenses');
         const snap = await ref.orderBy('order').get();
         const arr = snap.docs.map((d, idx) => {
@@ -273,11 +785,9 @@
             order: data.order ?? idx
           };
         });
-
         localStorage.setItem(LS_KEY, JSON.stringify(arr));
         console.log(`syncFirestoreToLocalReplace: saved ${arr.length} records to localStorage`);
       },
-
       // ---------- CRUD ----------
       async list() {
         if (this.mode === 'firestore' && this.userId) {
@@ -290,7 +800,6 @@
           return arr.sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
         }
       },
-
       async save(record) {
         // record: {id?, name, amount, paid, dueDate, order}
         if (this.mode === 'firestore' && this.userId) {
@@ -317,7 +826,6 @@
           return record.id;
         }
       },
-
       async remove(id) {
         if (!id) return;
         if (this.mode === 'firestore' && this.userId) {
@@ -329,7 +837,6 @@
           localStorage.setItem(LS_KEY, JSON.stringify(fil));
         }
       },
-
       async replaceAll(records) {
         if (this.mode === 'firestore' && this.userId) {
           const ref = this.db.collection('users').doc(this.userId).collection('expenses');
@@ -337,7 +844,6 @@
           const batch = this.db.batch();
           snap.forEach(doc => batch.delete(doc.ref));
           await batch.commit();
-
           const batch2 = this.db.batch();
           records.forEach(r => {
             const dref = ref.doc(r.id || String(Date.now()) + Math.random());
@@ -351,7 +857,6 @@
         }
       }
     };
-
     // ---------- APP UI ----------
     const App = {
       async load() {
@@ -359,7 +864,6 @@
           const tbody = qs('#expenses-table tbody');
           tbody.innerHTML = '';
           let rows = await Storage.list();
-
           if (rows.length === 0) {
             // seed defaults
             rows = DEFAULT_EXPENSES.map((name, i) => ({
@@ -368,7 +872,6 @@
             }));
             await Storage.replaceAll(rows);
           }
-
           rows.forEach(r => this.addRow(r));
           this.renumberAndPersist();
           this.calculateTotals();
@@ -376,7 +879,6 @@
           showError('Load failed: ' + e.message);
         }
       },
-
       addRow({ id, name='', amount='', paid='no', dueDate='', order=0 } = {}) {
         const tbody = qs('#expenses-table tbody');
         const tr = document.createElement('tr');
@@ -395,33 +897,29 @@
           <td class="row-actions">
             <button type="button" onclick="App.moveRow(this,-1)">↑</button>
             <button type="button" onclick="App.moveRow(this,1)">↓</button>
-            <button type="button" onclick="App.removeRow(this)">Remove</button>
+            <button type="button" onclick="App.removeRow(this)">🗑️</button>
           </td>
         `;
         tbody.appendChild(tr);
-
         const docId = tr.getAttribute('data-id');
         tr.querySelectorAll('input, select').forEach(inp => {
           inp.addEventListener('input', () => { App.saveRow(tr, docId); App.calculateTotals(); });
           inp.addEventListener('change', () => { App.saveRow(tr, docId); App.calculateTotals(); });
         });
-
         this.setupDrag(tr);
       },
-
       async saveRow(tr, id) {
         const cells = tr.cells;
         const payload = {
           id,
-          name: cells[1].querySelector('input').value.trim(),
-          amount: cells[2].querySelector('input').value.trim(),
-          paid: cells[3].querySelector('select').value,
-          dueDate: cells[4].querySelector('input').value,
+          name: cells,[object Object],querySelector('input').value.trim(),
+          amount: cells,[object Object],querySelector('input').value.trim(),
+          paid: cells,[object Object],querySelector('select').value,
+          dueDate: cells,[object Object],querySelector('input').value,
           order: Array.from(tr.parentNode.children).indexOf(tr)
         };
         await Storage.save(payload);
       },
-
       async removeRow(btn) {
         const tr = btn.closest('tr');
         const id = tr.getAttribute('data-id');
@@ -430,7 +928,6 @@
         this.renumberAndPersist();
         this.calculateTotals();
       },
-
       moveRow(btn, dir) {
         const tr = btn.closest('tr');
         const tbody = tr.parentNode;
@@ -442,7 +939,6 @@
         else tbody.insertBefore(tr, rows[j].nextSibling);
         this.renumberAndPersist();
       },
-
       setupDrag(tr) {
         let dragging = null;
         tr.draggable = true;
@@ -456,7 +952,6 @@
           if (after) tbody.insertBefore(dragging, after); else tbody.appendChild(dragging);
         });
       },
-
       async renumberAndPersist() {
         const rows = qsa('#expenses-table tbody tr');
         rows.forEach((r, i) => { r.querySelector('td.sn').textContent = String(i+1); });
@@ -464,23 +959,21 @@
           await this.saveRow(r, r.getAttribute('data-id'));
         }
       },
-
       calculateTotals() {
         let total = 0, paid = 0, unpaid = 0;
         const today = new Date(), soon = new Date(); soon.setDate(today.getDate()+9);
         qsa('#expenses-table tbody tr').forEach(row => {
-          const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
-          const status = row.cells[3].querySelector('select').value;
-          const due = row.cells[4].querySelector('input').value;
+          const amount = parseFloat(row.cells,[object Object],querySelector('input').value) || 0;
+          const status = row.cells,[object Object],querySelector('select').value;
+          const due = row.cells,[object Object],querySelector('input').value;
           total += amount;
-          if (status === 'yes') { paid += amount; row.style.backgroundColor = '#d4edda'; }
-          else { unpaid += amount; row.style.backgroundColor = (due && new Date(due) <= soon) ? '#f8d7da' : ''; }
+          if (status === 'yes') { paid += amount; row.style.backgroundColor = '#d1fae5'; }
+          else { unpaid += amount; row.style.backgroundColor = (due && new Date(due) <= soon) ? '#fee2e2' : ''; }
         });
         qs('#total-amount').textContent = `$${total.toFixed(2)}`;
         qs('#total-paid').textContent = `$${paid.toFixed(2)} Paid`;
         qs('#total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
       },
-
       // ----- Range calculator -----
       parseSerialExpr(expr) {
         if (!expr) return [];
@@ -503,7 +996,6 @@
         });
         return Array.from(out).sort((x,y)=>x-y);
       },
-
       calcRangeUnpaid() {
         const expr = qs('#range-input').value;
         const serials = this.parseSerialExpr(expr);
@@ -515,18 +1007,17 @@
         let sum = 0;
         serials.forEach(sn => {
           const row = rows[sn-1]; if (!row) return;
-          const status = row.cells[3].querySelector('select').value;
+          const status = row.cells,[object Object],querySelector('select').value;
           if (status === 'no') {
-            const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
+            const amount = parseFloat(row.cells,[object Object],querySelector('input').value) || 0;
             sum += amount;
           }
         });
         qs('#range-total').textContent = `Unpaid total (S.No ${serials.join(', ')}): $${sum.toFixed(2)}`;
       },
-
       // ----- Defaults helpers -----
       async addMissingDefaults() {
-        const nameSet = new Set(qsa('#expenses-table tbody tr').map(r => r.cells[1].querySelector('input').value.trim().toLowerCase()));
+        const nameSet = new Set(qsa('#expenses-table tbody tr').map(r => r.cells,[object Object],querySelector('input').value.trim().toLowerCase()));
         const start = qsa('#expenses-table tbody tr').length;
         const toAdd = DEFAULT_EXPENSES.filter(n => !nameSet.has(n.toLowerCase()));
         let i = 0;
@@ -538,7 +1029,6 @@
         this.renumberAndPersist();
         alert(toAdd.length ? `Added ${toAdd.length} missing default(s).` : 'All defaults already present.');
       },
-
       async resetToDefaults() {
         if (!confirm('This will replace ALL rows with the default list. Continue?')) return;
         const records = DEFAULT_EXPENSES.map((name, i) => ({
@@ -548,18 +1038,17 @@
         await this.load();
         alert('Defaults reloaded.');
       },
-
       // ----- Import / Export -----
       exportToExcel() {
         const rows = qsa('#expenses-table tbody tr');
         const data = [['S.No','Expense Type','Amount','Paid','Due Date']];
         rows.forEach(row => {
           data.push([
-            row.cells[0].textContent || '',
-            row.cells[1].querySelector('input')?.value || '',
-            row.cells[2].querySelector('input')?.value || '',
-            row.cells[3].querySelector('select')?.value || '',
-            row.cells[4].querySelector('input')?.value || ''
+            row.cells,[object Object],textContent || '',
+            row.cells,[object Object],querySelector('input')?.value || '',
+            row.cells,[object Object],querySelector('input')?.value || '',
+            row.cells,[object Object],querySelector('select')?.value || '',
+            row.cells,[object Object],querySelector('input')?.value || ''
           ]);
         });
         const ws = XLSX.utils.aoa_to_sheet(data);
@@ -569,36 +1058,32 @@
         const fileName = `${now.toLocaleString('default',{month:'short'})}_${now.getFullYear()}_expense.xlsx`;
         XLSX.writeFile(wb, fileName);
       },
-
       importFromExcel(file) {
         if (!file) { alert("Please select an Excel file first."); return; }
         const reader = new FileReader();
         reader.onload = async (e) => {
           const data = new Uint8Array(e.target.result);
           const wb = XLSX.read(data, { type:'array' });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const sheet = wb.Sheets[wb.SheetNames,[object Object],];
           const rows = XLSX.utils.sheet_to_json(sheet, { header:1 });
           const header = rows.shift() || [];
-          const hasSN = (header[0] && String(header[0]).toLowerCase().includes('s.no'));
-
+          const hasSN = (header,[object Object], && String(header,[object Object],).toLowerCase().includes('s.no'));
           for (const r of rows) {
             const [snMaybe, nameMaybe, amountMaybe, paidMaybe, dueMaybe] = r;
             const name = hasSN ? nameMaybe : snMaybe;
             if (!name) continue;
-            const amount = hasSN ? amountMaybe : r[1];
-            const paid   = ((hasSN ? paidMaybe : r[2]) || '').toString().toLowerCase()==='yes' ? 'yes' : 'no';
-            const due    = hasSN ? dueMaybe : r[3];
-
+            const amount = hasSN ? amountMaybe : r,[object Object],;
+            const paid   = ((hasSN ? paidMaybe : r,[object Object],) || '').toString().toLowerCase()==='yes' ? 'yes' : 'no';
+            const due    = hasSN ? dueMaybe : r,[object Object],;
             let matched = null;
             qsa('#expenses-table tbody tr').forEach(row => {
-              const val = row.cells[1].querySelector('input').value.trim().toLowerCase();
+              const val = row.cells,[object Object],querySelector('input').value.trim().toLowerCase();
               if (val === String(name).trim().toLowerCase()) matched = row;
             });
-
             if (matched) {
-              matched.cells[2].querySelector('input').value = amount || '';
-              matched.cells[3].querySelector('select').value = paid;
-              matched.cells[4].querySelector('input').value = due || '';
+              matched.cells,[object Object],querySelector('input').value = amount || '';
+              matched.cells,[object Object],querySelector('select').value = paid;
+              matched.cells,[object Object],querySelector('input').value = due || '';
               await this.saveRow(matched, matched.getAttribute('data-id'));
             } else {
               const id = await Storage.save({ name, amount:amount||'', paid, dueDate:due||'', order:qsa('#expenses-table tbody tr').length });
@@ -612,12 +1097,10 @@
         reader.readAsArrayBuffer(file);
       }
     };
-
     // ---------- WIRE UI ----------
     window.addEventListener('error', (e) => {
       showError(`Error: ${e.message}\n(See Console for details)`);
     });
-
     document.addEventListener('DOMContentLoaded', () => {
       qs('#btn-add-row').onclick = () => App.addRow({
         id:String(Date.now()),
@@ -626,14 +1109,12 @@
       qs('#btn-calc-range').onclick = () => App.calcRangeUnpaid();
       qs('#range-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') App.calcRangeUnpaid(); });
       qs('#btn-export').onclick = () => App.exportToExcel();
-      qs('#btn-import').onclick = () => App.importFromExcel(qs('#excel-file').files[0]);
+      qs('#btn-import').onclick = () => App.importFromExcel(qs('#excel-file').files,[object Object],);
       qs('#btn-add-missing').onclick = () => App.addMissingDefaults();
       qs('#btn-reset-defaults').onclick = () => App.resetToDefaults();
-
       // init storage (auto-selects Firestore or LocalStorage)
       Storage.init();
     });
-
     window.App = App;
   </script>
 </body>
