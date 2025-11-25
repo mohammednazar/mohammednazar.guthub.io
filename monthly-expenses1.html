@@ -2,168 +2,118 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Monthly Expenses Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced Expense Tracker UI</title>
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      background: #f4f7fb;
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
       margin: 0;
-      padding: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
       color: #333;
     }
-
-    header {
-      background: #4f46e5;
-      color: white;
-      padding: 20px 30px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    label {
+      font-weight: bold;
     }
-
-    header h1 {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 600;
-    }
-
-    #auth-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    #auth-buttons input, #auth-buttons button {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-    }
-
-    #auth-buttons input {
-      border: 1px solid #ddd;
-      background: white;
-    }
-
-    #auth-buttons button {
-      background: #6366f1;
-      color: white;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    #auth-buttons button:hover {
-      background: #818cf8;
-    }
-
-    main {
-      padding: 30px;
-      max-width: 1100px;
-      margin: auto;
-    }
-
-    button.action-primary {
-      background: #4f46e5;
-      color: white;
-      padding: 10px 16px;
-      border: none;
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
       border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      transition: 0.2s;
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
-
-    button.action-primary:hover {
-      background: #6366f1;
-    }
-
-    #range-tools {
-      background: white;
-      padding: 15px;
-      margin: 20px 0;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      border: none;
+      color: white;
+      font-size: 18px;
       border-radius: 10px;
-      box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
     }
-
-    #range-tools input {
-      padding: 6px 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+    button:hover {
+      background: #45a049;
     }
-
     table {
       width: 100%;
+      margin-top: 20px;
       border-collapse: collapse;
-      background: white;
-      box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      overflow: hidden;
     }
-
-    table thead {
-      background: #eef2ff;
-    }
-
     table th, table td {
-      padding: 12px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    table tbody tr:hover {
-      background: #f9faff;
-    }
-
-    input[type="text"], input[type="number"], input[type="date"], select {
-      width: 100%;
-      padding: 6px 8px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-      font-size: 13px;
-      background: #fafafa;
-    }
-
-    .row-actions button {
-      border: none;
-      padding: 6px 8px;
-      border-radius: 5px;
-      cursor: pointer;
-      background: #e5e7eb;
-      font-size: 12px;
-      transition: 0.2s;
-    }
-
-    .row-actions button:hover {
-      background: #d1d5db;
-    }
-
-    tfoot td {
-      background: #f9fafb;
-      font-weight: 600;
-    }
-
-    footer {
+      border: 1px solid #ddd;
+      padding: 10px;
       text-align: center;
-      padding: 15px;
-      margin-top: 50px;
-      font-size: 13px;
-      color: #777;
     }
-
+    table th {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
-  <!-- Your enhanced UI structure; JS logic can be plugged in from your existing code -->
+  <div class="container">
+    <h1>Enhanced Expense Tracker</h1>
+
+    <label>Expense Name</label>
+    <input id="expenseName" type="text" placeholder="Enter expense item" />
+
+    <label>Amount</label>
+    <input id="expenseAmount" type="number" placeholder="Enter amount" />
+
+    <label>Category</label>
+    <select id="expenseCategory">
+      <option>Groceries</option>
+      <option>Utilities</option>
+      <option>Transport</option>
+      <option>Entertainment</option>
+      <option>Miscellaneous</option>
+    </select>
+
+    <button onclick="addExpense()">Add Expense</button>
+
+    <table id="expenseTable">
+      <tr>
+        <th>Item</th>
+        <th>Amount</th>
+        <th>Category</th>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    function addExpense() {
+      const name = document.getElementById('expenseName').value;
+      const amount = document.getElementById('expenseAmount').value;
+      const category = document.getElementById('expenseCategory').value;
+
+      if (!name || !amount) {
+        alert('Please enter name and amount');
+        return;
+      }
+
+      const table = document.getElementById('expenseTable');
+      const row = table.insertRow();
+
+      row.insertCell(0).innerText = name;
+      row.insertCell(1).innerText = amount;
+      row.insertCell(2).innerText = category;
+
+      document.getElementById('expenseName').value = '';
+      document.getElementById('expenseAmount').value = '';
+    }
+  </script>
 </body>
 </html>
