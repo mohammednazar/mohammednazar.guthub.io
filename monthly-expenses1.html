@@ -40,10 +40,10 @@ button:hover {
   background: #1e40af;
 }
 
-input[type="file"] {
-  background: white;
-  padding: 5px;
+input[type="file"], input[type="email"], input[type="password"] {
+  padding: 6px;
   border-radius: 6px;
+  border: 1px solid #ccc;
 }
 
 table {
@@ -80,20 +80,54 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+/* 🔥 CRITICAL — session retained after refresh */
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
 let userId = null;
+
+function qs(sel){ return document.querySelector(sel); }
+function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+/* ================= AUTH ================= */
+
+function signUp() {
+  const email = qs('#email').value;
+  const password = qs('#password').value;
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .catch(err => alert(err.message));
+}
+
+function signIn() {
+  const email = qs('#email').value;
+  const password = qs('#password').value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err => alert(err.message));
+}
+
+function signOut() {
+  auth.signOut();
+}
 
 auth.onAuthStateChanged(user => {
   if (user) {
     userId = user.uid;
+    qs('#auth-status').textContent = "Logged in as: " + user.email;
     loadExpenses();
+  } else {
+    userId = null;
+    qs('#auth-status').textContent = "Not signed in";
+    qs('#expenses-table tbody').innerHTML =
+      '<tr><td colspan="6">Please sign in.</td></tr>';
   }
 });
 
-function qs(sel){ return document.querySelector(sel); }
-function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
+/* ================= EXPENSE LOGIC ================= */
 
 function addExpense(name='', amount='', paid='no', dueDate='', docId=''){
   const tbody = qs('#expenses-table tbody');
@@ -196,6 +230,8 @@ function renumberRows(){
   });
 }
 
+/* ================= TOTAL + HIGHLIGHT ================= */
+
 function calculateTotals(){
   let total=0, paid=0, unpaid=0;
 
@@ -211,7 +247,6 @@ function calculateTotals(){
     const due=row.cells[4].querySelector('input').value;
 
     total+=amount;
-
     row.style.backgroundColor='';
 
     if(status==='yes'){
@@ -238,19 +273,18 @@ function calculateTotals(){
   applyPaidFilter();
 }
 
+/* ================= FILTER ================= */
+
 function applyPaidFilter(){
   const filterValue=qs('#paid-filter').value;
 
   qsa('#expenses-table tbody tr').forEach(row=>{
     const status=row.cells[3].querySelector('select').value;
-
-    if(filterValue==='all'){
-      row.style.display='';
-    } else {
-      row.style.display=(status===filterValue)?'':'none';
-    }
+    row.style.display=(filterValue==='all'||status===filterValue)?'':'none';
   });
 }
+
+/* ================= EXCEL ================= */
 
 function exportToExcel(){
   const rows=qsa('#expenses-table tbody tr');
@@ -299,6 +333,16 @@ function importFromExcel(){
 
 <header>
 <h1>Monthly Expenses Tracker</h1>
+
+<div style="margin-top:10px;">
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="signUp()">Sign Up</button>
+  <button onclick="signIn()">Sign In</button>
+  <button onclick="signOut()">Sign Out</button>
+</div>
+
+<div id="auth-status" style="margin-top:8px;"></div>
 </header>
 
 <main>
