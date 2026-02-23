@@ -1,237 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Monthly Expenses Tracker</title>
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="UTF-8" />
+<title>Monthly Expenses Tracker</title>
 
-  <!-- XLSX -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      margin: 0;
-      padding: 0;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 0;
+}
 
-    header {
-      background: #1f2937;
-      color: white;
-      padding: 15px;
-    }
+header {
+  background: #1f2937;
+  color: white;
+  padding: 15px;
+}
 
-    h1 {
-      margin: 0;
-    }
+main { padding: 20px; }
 
-    main {
-      padding: 20px;
-    }
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    /* FIXED BUTTON VISIBILITY */
-    .button, button {
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-    }
+button:hover {
+  background: #1e40af;
+}
 
-    .button:hover, button:hover {
-      background-color: #1e40af;
-    }
+input[type="file"] {
+  background: white;
+  padding: 5px;
+  border-radius: 6px;
+}
 
-    input[type="file"] {
-      background: white;
-      padding: 6px;
-      border-radius: 6px;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
 
-    th {
-      background: #e5e7eb;
-      padding: 8px;
-      text-align: left;
-    }
+th {
+  background: #e5e7eb;
+}
 
-    td {
-      padding: 8px;
-      border-top: 1px solid #ddd;
-    }
+tfoot td {
+  font-weight: bold;
+  background: #f3f4f6;
+}
+</style>
 
-    tfoot td {
-      font-weight: bold;
-      background: #f3f4f6;
-    }
+<script>
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
+};
 
-    td.sn {
-      text-align: center;
-      width: 60px;
-    }
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-    .filter-box {
-      margin-bottom: 15px;
-    }
-  </style>
+let userId = null;
 
-  <script>
-    function qs(sel) { return document.querySelector(sel); }
-    function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
+auth.onAuthStateChanged(user => {
+  if (user) {
+    userId = user.uid;
+    loadExpenses();
+  }
+});
 
-    function addExpense(name = '', amount = '', paid = 'no', dueDate = '') {
-      const tbody = qs('#expenses-table tbody');
-      const row = document.createElement('tr');
+function qs(sel){ return document.querySelector(sel); }
+function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 
-      row.innerHTML = `
-        <td class="sn"></td>
-        <td><input type="text" value="${name}"></td>
-        <td><input type="number" value="${amount}"></td>
-        <td>
-          <select>
-            <option value="no" ${paid === 'no' ? 'selected' : ''}>No</option>
-            <option value="yes" ${paid === 'yes' ? 'selected' : ''}>Yes</option>
-          </select>
-        </td>
-        <td><input type="date" value="${dueDate}"></td>
-        <td><button onclick="removeExpense(this)">Remove</button></td>
-      `;
+function addExpense(name='', amount='', paid='no', dueDate='', docId=''){
+  const tbody = qs('#expenses-table tbody');
+  const row = document.createElement('tr');
+  row.setAttribute('data-id', docId || Date.now().toString());
 
-      tbody.appendChild(row);
-      setupListeners(row);
-      renumberRows();
+  row.innerHTML = `
+    <td class="sn"></td>
+    <td><input type="text" value="${name}"></td>
+    <td><input type="number" value="${amount}"></td>
+    <td>
+      <select>
+        <option value="no" ${paid==='no'?'selected':''}>No</option>
+        <option value="yes" ${paid==='yes'?'selected':''}>Yes</option>
+      </select>
+    </td>
+    <td><input type="date" value="${dueDate}"></td>
+    <td><button onclick="removeExpense(this)">Remove</button></td>
+  `;
+
+  tbody.appendChild(row);
+  setupListeners(row);
+  renumberRows();
+  calculateTotals();
+}
+
+function setupListeners(row){
+  row.querySelectorAll('input, select').forEach(input=>{
+    input.addEventListener('change', ()=>{
       calculateTotals();
-    }
-
-    function setupListeners(row) {
-      row.querySelectorAll('input, select').forEach(input => {
-        input.addEventListener('change', () => {
-          calculateTotals();
-          applyPaidFilter();
-        });
-      });
-    }
-
-    function removeExpense(btn) {
-      btn.closest('tr').remove();
-      renumberRows();
-      calculateTotals();
-    }
-
-    function renumberRows() {
-      qsa('#expenses-table tbody tr').forEach((r, i) => {
-        r.querySelector('.sn').textContent = i + 1;
-      });
-    }
-
-    function calculateTotals() {
-      let total = 0, paid = 0, unpaid = 0;
-
-      qsa('#expenses-table tbody tr').forEach(row => {
-        const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
-        const status = row.cells[3].querySelector('select').value;
-
-        total += amount;
-        if (status === 'yes') paid += amount;
-        else unpaid += amount;
-      });
-
-      qs('#total-amount').textContent = `$${total.toFixed(2)}`;
-      qs('#total-paid').textContent = `$${paid.toFixed(2)} Paid`;
-      qs('#total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
-
       applyPaidFilter();
+    });
+  });
+}
+
+async function loadExpenses(){
+  const snapshot = await db.collection('users')
+    .doc(userId)
+    .collection('expenses')
+    .get();
+
+  qs('#expenses-table tbody').innerHTML = '';
+
+  snapshot.forEach(doc=>{
+    const {name, amount, paid, dueDate} = doc.data();
+    addExpense(name, amount, paid, dueDate, doc.id);
+  });
+
+  calculateTotals();
+}
+
+function removeExpense(btn){
+  btn.closest('tr').remove();
+  renumberRows();
+  calculateTotals();
+}
+
+function renumberRows(){
+  qsa('#expenses-table tbody tr').forEach((r,i)=>{
+    r.querySelector('.sn').textContent = i+1;
+  });
+}
+
+function calculateTotals(){
+  let total=0, paid=0, unpaid=0;
+
+  qsa('#expenses-table tbody tr').forEach(row=>{
+    const amount=parseFloat(row.cells[2].querySelector('input').value)||0;
+    const status=row.cells[3].querySelector('select').value;
+
+    total+=amount;
+    if(status==='yes') paid+=amount;
+    else unpaid+=amount;
+  });
+
+  qs('#total-amount').textContent=`$${total.toFixed(2)}`;
+  qs('#total-paid').textContent=`$${paid.toFixed(2)} Paid`;
+  qs('#total-unpaid').textContent=`$${unpaid.toFixed(2)} Unpaid`;
+
+  applyPaidFilter();
+}
+
+function applyPaidFilter(){
+  const filterValue=qs('#paid-filter').value;
+
+  qsa('#expenses-table tbody tr').forEach(row=>{
+    const status=row.cells[3].querySelector('select').value;
+
+    if(filterValue==='all'){
+      row.style.display='';
+    } else {
+      row.style.display=(status===filterValue)?'':'none';
     }
+  });
+}
 
-    /* ✅ Paid Filter */
-    function applyPaidFilter() {
-      const filterValue = qs('#paid-filter').value;
+function exportToExcel(){
+  const rows=qsa('#expenses-table tbody tr');
+  const data=[['S.No','Expense Type','Amount','Paid','Due Date']];
 
-      qsa('#expenses-table tbody tr').forEach(row => {
-        const status = row.cells[3].querySelector('select').value;
+  rows.forEach(row=>{
+    data.push([
+      row.cells[0].textContent,
+      row.cells[1].querySelector('input').value,
+      row.cells[2].querySelector('input').value,
+      row.cells[3].querySelector('select').value,
+      row.cells[4].querySelector('input').value
+    ]);
+  });
 
-        if (filterValue === 'all') {
-          row.style.display = '';
-        } else {
-          row.style.display = (status === filterValue) ? '' : 'none';
-        }
-      });
-    }
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Expenses');
+  XLSX.writeFile(wb,'Expenses.xlsx');
+}
 
-    /* Dummy Excel Export */
-    function exportToExcel() {
-      alert("Export logic remains same as your existing code.");
-    }
+function importFromExcel(){
+  const file=qs('#excel-file').files[0];
+  if(!file){ alert("Select file first"); return; }
 
-    /* Dummy Excel Import */
-    function importFromExcel() {
-      alert("Import logic remains same as your existing code.");
-    }
-  </script>
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const data=new Uint8Array(e.target.result);
+    const wb=XLSX.read(data,{type:'array'});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+    rows.shift();
+
+    rows.forEach(r=>{
+      addExpense(r[1], r[2], r[3], r[4]);
+    });
+
+    calculateTotals();
+  };
+  reader.readAsArrayBuffer(file);
+}
+</script>
 </head>
 
 <body>
 
-  <header>
-    <h1>Monthly Expenses Tracker</h1>
-  </header>
+<header>
+<h1>Monthly Expenses Tracker</h1>
+</header>
 
-  <main>
+<main>
 
-    <div style="margin-bottom: 15px;">
-      <button onclick="addExpense()">Add New Expense</button>
-      <button class="button" onclick="exportToExcel()">Export to Excel</button>
-      <input type="file" id="excel-file" accept=".xlsx, .xls" />
-      <button class="button" onclick="importFromExcel()">Import from Excel</button>
-    </div>
+<div style="margin-bottom:15px;">
+  <button onclick="addExpense()">Add New Expense</button>
+  <button onclick="exportToExcel()">Export to Excel</button>
+  <input type="file" id="excel-file" accept=".xlsx,.xls">
+  <button onclick="importFromExcel()">Import from Excel</button>
+</div>
 
-    <!-- ✅ Paid Filter -->
-    <div class="filter-box">
-      <label><strong>Filter by Paid:</strong></label>
-      <select id="paid-filter" onchange="applyPaidFilter()">
-        <option value="all">All</option>
-        <option value="yes">Yes (Paid)</option>
-        <option value="no">No (Unpaid)</option>
-      </select>
-    </div>
+<div style="margin-bottom:15px;">
+  <label><strong>Filter by Paid:</strong></label>
+  <select id="paid-filter" onchange="applyPaidFilter()">
+    <option value="all">All</option>
+    <option value="yes">Yes (Paid)</option>
+    <option value="no">No (Unpaid)</option>
+  </select>
+</div>
 
-    <table id="expenses-table">
-      <thead>
-        <tr>
-          <th class="sn">S.No</th>
-          <th>Expense Type</th>
-          <th>Amount ($)</th>
-          <th>Paid?</th>
-          <th>Due Date</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr>
-          <td>Total</td>
-          <td id="total-amount">$0.00</td>
-          <td id="total-paid">$0.00 Paid</td>
-          <td id="total-unpaid">$0.00 Unpaid</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
+<table id="expenses-table">
+<thead>
+<tr>
+<th class="sn">S.No</th>
+<th>Expense Type</th>
+<th>Amount ($)</th>
+<th>Paid?</th>
+<th>Due Date</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody></tbody>
+<tfoot>
+<tr>
+<td>Total</td>
+<td id="total-amount">$0.00</td>
+<td id="total-paid">$0.00 Paid</td>
+<td id="total-unpaid">$0.00 Unpaid</td>
+<td colspan="2"></td>
+</tr>
+</tfoot>
+</table>
 
-  </main>
-
+</main>
 </body>
 </html>
