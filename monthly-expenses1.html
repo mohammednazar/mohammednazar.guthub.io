@@ -153,25 +153,45 @@ function renumberRows(){
   });
 }
 
-function calculateTotals(){
-  let total=0, paid=0, unpaid=0;
+function calculateTotals() {
+  let total = 0, paid = 0, unpaid = 0;
 
-  qsa('#expenses-table tbody tr').forEach(row=>{
-    const amount=parseFloat(row.cells[2].querySelector('input').value)||0;
-    const status=row.cells[3].querySelector('select').value;
+  const today = new Date();
+  const soon = new Date();
+  soon.setDate(today.getDate() + 10); // 10-day window
 
-    total+=amount;
-    if(status==='yes') paid+=amount;
-    else unpaid+=amount;
+  qsa('#expenses-table tbody tr').forEach(row => {
+    const amount = parseFloat(row.cells[2].querySelector('input').value) || 0;
+    const status = row.cells[3].querySelector('select').value;
+    const due = row.cells[4].querySelector('input').value;
+
+    total += amount;
+
+    // Reset background first
+    row.style.backgroundColor = '';
+
+    if (status === 'yes') {
+      paid += amount;
+      row.style.backgroundColor = '#d4edda';  // Light green
+    } 
+    else {
+      unpaid += amount;
+
+      if (due) {
+        const dueDate = new Date(due);
+        if (dueDate <= soon) {
+          row.style.backgroundColor = '#f8d7da'; // Light red
+        }
+      }
+    }
   });
 
-  qs('#total-amount').textContent=`$${total.toFixed(2)}`;
-  qs('#total-paid').textContent=`$${paid.toFixed(2)} Paid`;
-  qs('#total-unpaid').textContent=`$${unpaid.toFixed(2)} Unpaid`;
+  qs('#total-amount').textContent = `$${total.toFixed(2)}`;
+  qs('#total-paid').textContent = `$${paid.toFixed(2)} Paid`;
+  qs('#total-unpaid').textContent = `$${unpaid.toFixed(2)} Unpaid`;
 
   applyPaidFilter();
 }
-
 function applyPaidFilter(){
   const filterValue=qs('#paid-filter').value;
 
