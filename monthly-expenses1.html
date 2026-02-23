@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
   <style>
-    /* tiny, optional helpers if your styles.css doesn’t cover these */
+    /* tiny, optional helpers if your styles.css doesn't cover these */
     .row-actions { display: flex; gap: .25rem; }
     .row-actions button { padding: 2px 6px; }
     #range-tools { display: flex; align-items: center; gap: .5rem; margin: 12px 0; flex-wrap: wrap; }
@@ -23,6 +23,11 @@
     td.sn { text-align: center; width: 64px; }
     th.sn { width: 64px; }
     tr.dragging { opacity: 0.5; }
+
+    /* Filter toolbar */
+    #filter-tools { display: flex; align-items: center; gap: .5rem; margin: 8px 0 12px; flex-wrap: wrap; }
+    #filter-tools label { font-weight: 600; }
+    #paid-filter { padding: 4px 8px; }
   </style>
 
   <script>
@@ -86,6 +91,19 @@
     function qs(sel, root = document) { return root.querySelector(sel); }
     function qsa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 
+    // --- Filter rows by Paid status ---
+    function applyPaidFilter() {
+      const filterVal = qs('#paid-filter').value; // 'all', 'yes', 'no'
+      qsa('#expenses-table tbody tr').forEach(row => {
+        if (filterVal === 'all') {
+          row.style.display = '';
+        } else {
+          const status = row.cells[3]?.querySelector('select')?.value;
+          row.style.display = (status === filterVal) ? '' : 'none';
+        }
+      });
+    }
+
     // --- Row creation ---
     function addExpense(name = '', amount = '', paid = 'no', dueDate = '', docId = '') {
       const tbody = qs('#expenses-table tbody');
@@ -116,6 +134,7 @@
 
       renumberAndPersistOrders(); // keep S/N in sync
       calculateTotals();
+      applyPaidFilter(); // respect current filter for newly added rows
     }
 
     function setupRowListeners(row) {
@@ -125,10 +144,12 @@
         input.addEventListener('input', () => {
           saveRowToFirestore(row, docId);
           calculateTotals();
+          applyPaidFilter(); // re-apply filter when paid status changes
         });
         input.addEventListener('change', () => {
           saveRowToFirestore(row, docId);
           calculateTotals();
+          applyPaidFilter(); // re-apply filter when paid status changes
         });
       });
     }
@@ -177,6 +198,7 @@
         });
       }
       calculateTotals();
+      applyPaidFilter();
     }
 
     async function removeExpense(button) {
@@ -331,6 +353,7 @@
 
         renumberAndPersistOrders();
         calculateTotals();
+        applyPaidFilter();
         alert("Imported successfully.");
       };
       reader.readAsArrayBuffer(file);
@@ -395,6 +418,7 @@
     window.exportToExcel = exportToExcel;
     window.importFromExcel = importFromExcel;
     window.calcRangeUnpaid = calcRangeUnpaid;
+    window.applyPaidFilter = applyPaidFilter;
   </script>
 </head>
 <body>
@@ -417,6 +441,16 @@
   <main>
     <div style="margin: 20px 0;">
       <button onclick="addExpense()">Add New Expense</button>
+    </div>
+
+    <!-- Filter by Paid status -->
+    <div id="filter-tools">
+      <label for="paid-filter">Filter by Paid:</label>
+      <select id="paid-filter" onchange="applyPaidFilter()">
+        <option value="all">All</option>
+        <option value="yes">Yes (Paid)</option>
+        <option value="no">No (Unpaid)</option>
+      </select>
     </div>
 
     <!-- Range total calculator -->
